@@ -2,9 +2,13 @@ let pairScore = 2; // Score for having two in a row
 let tripletScore = 5; // Score for having three in a row
 let quadScore = 10; // Score for having four in a row
 
-let openEndPair = 6; // Score for two in a row, but with an open end.
-let openEndTriplet = 15; // Score for three in a row, but with an open end.
-let openEndQuad = 30; // Score for four in a row, but with an open end.
+let openEndPair = 3*pairScore; // Score for two in a row, but with an open end.
+let openEndTriplet = 2.5*tripletScore; // Score for three in a row, but with an open end.
+let openEndQuad = 3*quadScore; // Score for four in a row, but with an open end.
+
+let doubleOpenEndPair = 3*openEndPair;
+let doubleOpenEndTriplet = 2.5*openEndTriplet;
+let doubleOpenEndQuad = 10*openEndQuad;
 
 let PIECES = {'EMPTY': -1, 'BLACK': 0, 'WHITE': 1};
 let TURN = {
@@ -16,7 +20,10 @@ let TURN = {
 let CURRENT_TURN = TURN.AI;
 let OTHER_PLAYER_LOOKUP = {[PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES.WHITE};
 
-let SEARCH_DEPTH = 15;
+const GAME_STR_TO_USE = '-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,0';
+const SEARCH_DEPTH = 15;
+let STRONG_SEARCH_DEPTH = 3; // Bigger values take a lot longer at the start, but give quick results as the search gets deeper. (e.g. with a value of 3, search up to depth 3-4 will take much longer, but after it should be much faster)
+STRONG_SEARCH_DEPTH = Math.min(SEARCH_DEPTH, STRONG_SEARCH_DEPTH);
 
 // Track what piece is in each location (will be 36 elements long).
 let GamePieces = [];
@@ -95,99 +102,71 @@ function setup() {
 		GamePieces.push(PIECES.EMPTY);
 	}
 
-	let blackPieces = 3;
-	let whitePieces = 3;
+	// let blackPieces = 2;
+	// let whitePieces = 2;
 
-	while (blackPieces > 0) {
-		let i = Math.floor(Math.random()*GamePieces.length);
+	// while (blackPieces > 0) {
+	// 	let i = Math.floor(Math.random()*GamePieces.length);
 		
-		while (GamePieces[i] !== PIECES.EMPTY) {
-			i = Math.floor(Math.random()*GamePieces.length);
-		}
+	// 	while (GamePieces[i] !== PIECES.EMPTY) {
+	// 		i = Math.floor(Math.random()*GamePieces.length);
+	// 	}
 
-		GamePieces[i] = PIECES.BLACK;
-		blackPieces--;
-	}
+	// 	GamePieces[i] = PIECES.BLACK;
+	// 	blackPieces--;
+	// }
 
-	while (whitePieces > 0) {
-		let i = Math.floor(Math.random()*GamePieces.length);
+	// while (whitePieces > 0) {
+	// 	let i = Math.floor(Math.random()*GamePieces.length);
 		
-		while (GamePieces[i] !== PIECES.EMPTY) {
-			i = Math.floor(Math.random()*GamePieces.length);
-		}
+	// 	while (GamePieces[i] !== PIECES.EMPTY) {
+	// 		i = Math.floor(Math.random()*GamePieces.length);
+	// 	}
 
-		GamePieces[i] = PIECES.WHITE;
-		whitePieces--;
-	}
+	// 	GamePieces[i] = PIECES.WHITE;
+	// 	whitePieces--;
+	// }
+
+	// console.log(GamePieces.toString());
+	// GamePieces.forEach((x,index) => x !== PIECES.EMPTY && console.log(index));
 
 	// TODO, depth 7+ after first move (13, q4, right)
-	GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
 
 	// GamePieces = '-1,-1,-1,0,1,-1,-1,0,1,1,0,0,0,1,1,1,0,1,1,0,-1,1,-1,0,0,0,0,1,1,-1,1,1,0,0,-1,-1'.split(',').map(x => parseInt(x));
-	// GamePieces = '-1,-1,-1,0,1,-1,-1,0,1,1,0,0,0,1,1,1,0,1,1,0,0,1,-1,0,0,0,0,1,1,-1,1,1,0,0,1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,0'.split(',').map(x => parseInt(x));
 
-	draw();
-	draw();
+	if (GAME_STR_TO_USE) GamePieces = GAME_STR_TO_USE.split(',').map(x => parseInt(x));
+
 	draw();
 }
 
 let gameHistory = [];
 let searchCalls = 0n;
-let computeAiMove = false;
 let gameOver = false;
 
 // To be called each frame
 function draw() {
 
-	if (computeAiMove && !gameOver) {
+	if (!gameOver) {
 		// If the board is empty, choose a random starting move.
-		if (GamePieces.filter(x => x === PIECES.EMPTY).length === GamePieces.length) {
-			let randomStartChoice = Math.floor(Math.random()*GamePieces.length);
-			GamePieces[randomStartChoice] = TURN.AI_COLOR;
-		} else {
+		// if (GamePieces.filter(x => x === PIECES.EMPTY).length === GamePieces.length) {
+		// 	let randomStartChoice = Math.floor(Math.random()*GamePieces.length);
+		// 	GamePieces[randomStartChoice] = TURN.AI_COLOR;
+		// } else {
 			let result = SearchAux(GamePieces, TURN.AI_COLOR);
 			console.log(result);
 			gameHistory.push(GamePieces.toString());
 			GamePieces[result[0]] = TURN.AI_COLOR;
 			RotateBoard(GamePieces, result[1], result[2]);
-		}
+		// }
 
 		CURRENT_TURN = TURN.PLAYER;
-		computeAiMove = false;
 
 		if (Math.abs(Evaluate(GamePieces, TURN.AI_COLOR)) === Number.MAX_SAFE_INTEGER) {
 			gameOver = true;
 		}
 	}
-	// else if (frameCount > 1 && !gameOver) {
-	// 	SEARCH_DEPTH = 3;
-	// 	let result = SearchAux(GamePieces, TURN.PLAYER_COLOR);
-	// 	console.log(result);
-	// 	gameHistory.push(GamePieces.toString());
-	// 	GamePieces[result[0]] = TURN.PLAYER_COLOR;
-	// 	RotateBoard(GamePieces, result[1], result[2]);
-	// 	CURRENT_TURN = TURN.AI;
-
-	// 	if (Math.abs(Evaluate(GamePieces, TURN.AI_COLOR)) === Number.MAX_SAFE_INTEGER) {
-	// 		gameOver = true;
-	// 	}
-	// }
-
-	if (CURRENT_TURN === TURN.AI) computeAiMove = true;
-}
-
-let playerQuadrantSelection = 0;
-let playerRotationDirection = false;
-
-function undo() {
-	if (gameHistory.length <= 0) return;
-	gameHistory.pop();
-	let newState = gameHistory.pop();
-	GamePieces = newState.split(',').map(x => parseInt(x));
-
-	gameOver = false;
-	computeAiMove = false;
-	CURRENT_TURN = TURN.PLAYER;
 }
 
 let originalDepth = 1;
@@ -219,8 +198,6 @@ function SearchAux(game, currentTurn) {
 			} 
 
 			iteriveDeepening = result[1].map(x => parseInt(x.split(',')[0]));
-			// console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
-			// console.log(result[1]);
 			console.log(`Depth (${depth}), Score (${result[0]}) (${PrettyResult(result[1][0].split(','))})`, `Calls (${searchCalls})`, `msTime (${depthTime})`);
 			depth++;
 
@@ -248,8 +225,7 @@ let evals = [];
 
 
 function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
-	// console.log(moveHistory);
-	// searchCalls += 1n;
+	searchCalls += 1n;
 
 	let currentGameScore = Evaluate(game, player);
 
@@ -277,13 +253,11 @@ function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 			RotateBoard(GamePieces, listOfMoves[i][1], !listOfMoves[i][2]);
 			GamePieces[listOfMoves[i][0]] = -1;
 
-			// if (depth === originalDepth && evaluationOfMove[0] > bestScore) bestIndex = evaluationOfMove[1];
 			if (evaluationOfMove[0] > bestScore) {
 				bestScore = evaluationOfMove[0];
 				bestMovesList = evaluationOfMove[1];
 
 			}
-			// bestScore = Math.max(bestScore, evaluationOfMove[0]);
 
 			if (bestScore >= beta) break;
 
@@ -306,11 +280,11 @@ function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 			RotateBoard(GamePieces, listOfMoves[i][1], !listOfMoves[i][2]);
 			GamePieces[listOfMoves[i][0]] = -1;
 
+			// Choosing the minimum here because we assume the opponent chooses best possible move (which gives the target player the lowest score)
 			if (evaluationOfMove[0] < bestScore) {
 				bestScore = evaluationOfMove[0];
 				bestMovesList = evaluationOfMove[1];
 			}
-			// bestScore = Math.min(bestScore, evaluationOfMove[0]); // Min here because we assume opponent chooses best possible move
 
 			if (bestScore <= alpha) break;
 
@@ -319,38 +293,52 @@ function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 
 		return [bestScore, bestMovesList];
 	}
-
-	// return bestScore;
 }
+
+const QUADRANT0_SYMMETRY_IGNORE = {0: true, 1: true, 2: true, 6: true};
+const QUADRANT1_SYMMETRY_IGNORE = {3: true, 4: true, 5: true, 9: true};
+const QUADRANT2_SYMMETRY_IGNORE = {18: true, 19: true, 20: true, 24: true};
+const QUADRANT3_SYMMETRY_IGNORE = {21: true, 22: true, 23: true, 27: true};
 
 function GetEmptyIndicies(game, targetColor, depth) {
 	let emptyIndexList = [];
 	let quadrantsChoosen = 0;
 	let indexScoreLookup = {};
 
+	let Q1s = QuadrantSymmetricWithPiece(game, 7, 0);
+	let Q2s = QuadrantSymmetricWithPiece(game, 10, 1);
+	let Q3s = QuadrantSymmetricWithPiece(game, 25, 2);
+	let Q4s = QuadrantSymmetricWithPiece(game, 28, 3);
+
 	for (let i = 0; i < game.length; ++i) {
 		if (game[i] === PIECES.EMPTY) {
+			if (Q1s && QUADRANT0_SYMMETRY_IGNORE[i]) continue;
+			else if (Q2s &&  QUADRANT1_SYMMETRY_IGNORE[i]) continue;
+			else if (Q3s &&  QUADRANT2_SYMMETRY_IGNORE[i]) continue;
+			else if (Q4s &&  QUADRANT3_SYMMETRY_IGNORE[i]) continue;
+
+			quadrantsChoosen = 0;
 			indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
 
-			if (!QuadrantSymmetricWithPiece(game, i, 0)) {
+			if (!Q1s || !QuadrantSymmetricWithPiece(game, i, 0)) {
 				emptyIndexList.push([i, 0, false]);
 				emptyIndexList.push([i, 0, true]);
 				++quadrantsChoosen;
 			}
 
-			if (!QuadrantSymmetricWithPiece(game, i, 1)) {
+			if (!Q2s || !QuadrantSymmetricWithPiece(game, i, 1)) {
 				emptyIndexList.push([i, 1, false]);
 				emptyIndexList.push([i, 1, true]);
 				++quadrantsChoosen;
 			}
 
-			if (!QuadrantSymmetricWithPiece(game, i, 2)) {
+			if (!Q2s || !QuadrantSymmetricWithPiece(game, i, 2)) {
 				emptyIndexList.push([i, 2, false]);
 				emptyIndexList.push([i, 2, true]);
 				++quadrantsChoosen;
 			}
 
-			if (!QuadrantSymmetricWithPiece(game, i, 3)) {
+			if (!Q3s || !QuadrantSymmetricWithPiece(game, i, 3)) {
 				emptyIndexList.push([i, 3, false]);
 				emptyIndexList.push([i, 3, true]);
 				++quadrantsChoosen;
@@ -361,7 +349,6 @@ function GetEmptyIndicies(game, targetColor, depth) {
 	}
 
 	if (iteriveDeepening.length > 0) {
-		// console.log({iteriveDeepening});
 		let iteriveDeepeningValue = iteriveDeepening.shift();
 
 		emptyIndexList.sort((a,b) => {
@@ -372,9 +359,8 @@ function GetEmptyIndicies(game, targetColor, depth) {
 		 	}
 			return a[0] === iteriveDeepeningValue ? -1 : b[0] === iteriveDeepeningValue ? 1 : 0;
 		});
-		// console.log({iteriveDeepening, iteriveDeepeningValue});
 	} else {
-		if (Math.abs(originalDepth - depth) > 4) {
+		if (Math.abs(originalDepth - depth) > STRONG_SEARCH_DEPTH) {
 			emptyIndexList.sort((a,b) => {
 				return indexScoreLookup[a[0]] > indexScoreLookup[b[0]] ? -1 : 1;
 			});
@@ -490,23 +476,31 @@ function CountColorsOnRowColDiag(game, index, targetColor, print=false) {
 	let count = 0;
 
 	for (let i = 0; i < rowIndices.length; ++i) {
-		if (game[rowIndices[i]] === targetColor) ++count;
+		if (game[rowIndices[i]] === targetColor) count += 1;
 	}
 
 	for (let i = 0; i < colIndices.length; ++i) {
-		if (game[colIndices[i]] === targetColor) ++count;
+		if (game[colIndices[i]] === targetColor) count += 1;
 	}
 
 	for (let i = 0; i < diagIndices.length; ++i) {
 		for (let j = 0; j < DIAGONAL_INDICES[diagIndices[i]].length; ++j) {
-			if (game[DIAGONAL_INDICES[diagIndices[i]][j]] === targetColor) ++count;
+			if (game[DIAGONAL_INDICES[diagIndices[i]][j]] === targetColor) count += 1;
 		}
 	}
 
 	for (let i = 0; i < nearbyIndices.length; ++i) {
-		if (game[nearbyIndices[i]] === targetColor) ++count;
+		if (game[nearbyIndices[i]] === targetColor) count += 2;
 	}
 
+	// return count*(Math.random() - 0.5);
+	// return count + ((2*Math.random() - 1.0)*(count/20));
+	
+	// count = (count*(count-1))/2;
+	// return count + ((2*Math.random() - 1.0)*(count/20));
+	
+	// return (count*(count-1))/2;
+	
 	return count;
 }
 
@@ -555,9 +549,9 @@ function CountRowColDiagScore(game, rowColDiagIndexList, targetColor) {
 }
 
 function ScoreConsecutive(currentScore, consecutive, openStart, openEnd) {
-	if (consecutive === 2) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 2*openEndPair : openEndPair) : pairScore);
-	else if (consecutive === 3) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 2*openEndTriplet : openEndTriplet) : tripletScore);
-	else if (consecutive === 4) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 100*openEndQuad : openEndQuad) : quadScore);
+	if (consecutive === 2) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? doubleOpenEndPair : openEndPair) : pairScore);
+	else if (consecutive === 3) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? doubleOpenEndTriplet : openEndTriplet) : tripletScore);
+	else if (consecutive === 4) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? doubleOpenEndQuad : openEndQuad) : quadScore);
 	return Number.MAX_SAFE_INTEGER;
 }
 
