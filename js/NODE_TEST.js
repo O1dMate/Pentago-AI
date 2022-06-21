@@ -98,9 +98,18 @@ function setup() {
 
 	// Default Game Board is empty
 	for (let i = 0; i < 36; ++i) {
-		// GamePieces.push(Math.floor(Math.random()*3)-1); // Testing Only, change to -1 after
-		GamePieces.push(PIECES.EMPTY);
+		GamePieces.push(Math.floor(Math.random()*3)-1); // Testing Only, change to -1 after
+		// GamePieces.push(PIECES.EMPTY);
 	}
+
+	let aTime = Date.now();
+	for (let i = 0; i < 1_000_000; ++i) {
+		RotateBoard(GamePieces, Math.floor(Math.random()*4), !(i%2));
+	}
+	aTime = Date.now() - aTime;
+	console.log(aTime);
+	process.exit(0);
+
 
 	// let blackPieces = 2;
 	// let whitePieces = 2;
@@ -136,7 +145,7 @@ function setup() {
 	// GamePieces = '-1,-1,-1,0,1,-1,-1,0,1,1,0,0,0,1,1,1,0,1,1,0,-1,1,-1,0,0,0,0,1,1,-1,1,1,0,0,-1,-1'.split(',').map(x => parseInt(x));
 	// GamePieces = '-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,0'.split(',').map(x => parseInt(x));
 
-	if (GAME_STR_TO_USE) GamePieces = GAME_STR_TO_USE.split(',').map(x => parseInt(x));
+	// if (GAME_STR_TO_USE) GamePieces = GAME_STR_TO_USE.split(',').map(x => parseInt(x));
 
 	draw();
 }
