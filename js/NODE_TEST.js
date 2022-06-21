@@ -14,15 +14,15 @@ let PIECES = {'EMPTY': -1, 'BLACK': 0, 'WHITE': 1};
 let TURN = {
 	PLAYER: 0,
 	AI: 1,
-	PLAYER_COLOR: PIECES.BLACK,
-	AI_COLOR: PIECES.WHITE
+	PLAYER_COLOR: PIECES.WHITE,
+	AI_COLOR: PIECES.BLACK
 };
 let CURRENT_TURN = TURN.AI;
 let OTHER_PLAYER_LOOKUP = {[PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES.WHITE};
 
-const GAME_STR_TO_USE = '-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,0';
+const GAME_STR_TO_USE = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1';
 const SEARCH_DEPTH = 15;
-let STRONG_SEARCH_DEPTH = 3; // Bigger values take a lot longer at the start, but give quick results as the search gets deeper. (e.g. with a value of 3, search up to depth 3-4 will take much longer, but after it should be much faster)
+let STRONG_SEARCH_DEPTH = 5; // Bigger values take a lot longer at the start, but give quick results as the search gets deeper. (e.g. with a value of 3, search up to depth 3-4 will take much longer, but after it should be much faster)
 STRONG_SEARCH_DEPTH = Math.min(SEARCH_DEPTH, STRONG_SEARCH_DEPTH);
 
 // Track what piece is in each location (will be 36 elements long).
@@ -174,9 +174,14 @@ let bestIndex = -1;
 let iteriveDeepening = [];
 
 function SearchAux(game, currentTurn) {
+	let result;
 	let depth = 1;
 	let depthTime = 0;
 	searchCalls = 0n;
+
+	console.log('\nGame: ' + JSON.stringify(game));
+	console.log('Current Turn: ' + (currentTurn === PIECES.WHITE ? 'WHITE' : 'BLACK'));
+	console.log('Search Depth: (' + SEARCH_DEPTH + '), Strong Search Depth (' + STRONG_SEARCH_DEPTH + ')\n');
 
 	while (depth <= SEARCH_DEPTH) {
 		try {
@@ -204,7 +209,8 @@ function SearchAux(game, currentTurn) {
 			if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break;
 		} catch (err) {
 			console.log(err);
-			console.log({depth, searchCalls});
+			console.log({game, depthTime, depth, searchCalls, result});
+			break;
 		}
 	}
 
@@ -310,42 +316,106 @@ function GetEmptyIndicies(game, targetColor, depth) {
 	let Q3s = QuadrantSymmetricWithPiece(game, 25, 2);
 	let Q4s = QuadrantSymmetricWithPiece(game, 28, 3);
 
+	let leftScore = 0;
+	let rightScore = 0;
+	let bestScoreSoFar = 0;
+
 	for (let i = 0; i < game.length; ++i) {
-		if (game[i] === PIECES.EMPTY) {
-			if (Q1s && QUADRANT0_SYMMETRY_IGNORE[i]) continue;
-			else if (Q2s &&  QUADRANT1_SYMMETRY_IGNORE[i]) continue;
-			else if (Q3s &&  QUADRANT2_SYMMETRY_IGNORE[i]) continue;
-			else if (Q4s &&  QUADRANT3_SYMMETRY_IGNORE[i]) continue;
+		if (game[i] !== PIECES.EMPTY) continue;
+		if (Q1s && QUADRANT0_SYMMETRY_IGNORE[i]) continue;
+		if (Q2s &&  QUADRANT1_SYMMETRY_IGNORE[i]) continue;
+		if (Q3s &&  QUADRANT2_SYMMETRY_IGNORE[i]) continue;
+		if (Q4s &&  QUADRANT3_SYMMETRY_IGNORE[i]) continue;
 
-			quadrantsChoosen = 0;
-			indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
+		quadrantsChoosen = 0;
 
-			if (!Q1s || !QuadrantSymmetricWithPiece(game, i, 0)) {
+		if (!Q1s || !QuadrantSymmetricWithPiece(game, i, 0)) {
+			leftScore = CountColorsOnRowColDiagV2(game, [i, 0, false], targetColor);
+			rightScore = CountColorsOnRowColDiagV2(game, [i, 0, true], targetColor);
+
+			if (leftScore > bestScoreSoFar) {
+				emptyIndexList.unshift([i, 0, false]);
+				emptyIndexList.push([i, 0, true]);
+				bestScoreSoFar = leftScore;
+			}
+			else if (rightScore > bestScoreSoFar) {
+				emptyIndexList.push([i, 0, false]);
+				emptyIndexList.unshift([i, 0, true]);
+				bestScoreSoFar = rightScore;
+			}
+			else {
 				emptyIndexList.push([i, 0, false]);
 				emptyIndexList.push([i, 0, true]);
-				++quadrantsChoosen;
 			}
+			++quadrantsChoosen;
+		}
 
-			if (!Q2s || !QuadrantSymmetricWithPiece(game, i, 1)) {
+		if (!Q2s || !QuadrantSymmetricWithPiece(game, i, 1)) {
+			leftScore = CountColorsOnRowColDiagV2(game, [i, 1, false], targetColor);
+			rightScore = CountColorsOnRowColDiagV2(game, [i, 1, true], targetColor);
+
+			if (leftScore > bestScoreSoFar) {
+				emptyIndexList.unshift([i, 1, false]);
+				emptyIndexList.push([i, 1, true]);
+				bestScoreSoFar = leftScore;
+			}
+			else if (rightScore > bestScoreSoFar) {
+				emptyIndexList.push([i, 1, false]);
+				emptyIndexList.unshift([i, 1, true]);
+				bestScoreSoFar = rightScore;
+			}
+			else {
 				emptyIndexList.push([i, 1, false]);
 				emptyIndexList.push([i, 1, true]);
-				++quadrantsChoosen;
 			}
+			++quadrantsChoosen;
+		}
 
-			if (!Q2s || !QuadrantSymmetricWithPiece(game, i, 2)) {
+		if (!Q3s || !QuadrantSymmetricWithPiece(game, i, 2)) {
+			leftScore = CountColorsOnRowColDiagV2(game, [i, 2, false], targetColor);
+			rightScore = CountColorsOnRowColDiagV2(game, [i, 2, true], targetColor);
+
+			if (leftScore > bestScoreSoFar) {
+				emptyIndexList.unshift([i, 2, false]);
+				emptyIndexList.push([i, 2, true]);
+				bestScoreSoFar = leftScore;
+			}
+			else if (rightScore > bestScoreSoFar) {
+				emptyIndexList.push([i, 2, false]);
+				emptyIndexList.unshift([i, 2, true]);
+				bestScoreSoFar = rightScore;
+			}
+			else {
 				emptyIndexList.push([i, 2, false]);
 				emptyIndexList.push([i, 2, true]);
-				++quadrantsChoosen;
 			}
+			++quadrantsChoosen;
+		}
 
-			if (!Q3s || !QuadrantSymmetricWithPiece(game, i, 3)) {
+		if (!Q4s || !QuadrantSymmetricWithPiece(game, i, 3)) {
+			leftScore = CountColorsOnRowColDiagV2(game, [i, 3, false], targetColor);
+			rightScore = CountColorsOnRowColDiagV2(game, [i, 3, true], targetColor);
+
+			if (leftScore > bestScoreSoFar) {
+				emptyIndexList.unshift([i, 3, false]);
+				emptyIndexList.push([i, 3, true]);
+				bestScoreSoFar = leftScore;
+			}
+			else if (rightScore > bestScoreSoFar) {
+				emptyIndexList.push([i, 3, false]);
+				emptyIndexList.unshift([i, 3, true]);
+				bestScoreSoFar = rightScore;
+			}
+			else {
 				emptyIndexList.push([i, 3, false]);
 				emptyIndexList.push([i, 3, true]);
-				++quadrantsChoosen;
 			}
-
-			if (quadrantsChoosen === 0) emptyIndexList.push([i, 0, false]);
+			++quadrantsChoosen;
 		}
+
+			if (quadrantsChoosen === 0) {
+				emptyIndexList.push([i, 0, false]);
+			}
 	}
 
 	if (iteriveDeepening.length > 0) {
@@ -360,21 +430,13 @@ function GetEmptyIndicies(game, targetColor, depth) {
 			return a[0] === iteriveDeepeningValue ? -1 : b[0] === iteriveDeepeningValue ? 1 : 0;
 		});
 	} else {
-		if (Math.abs(originalDepth - depth) > STRONG_SEARCH_DEPTH) {
-			emptyIndexList.sort((a,b) => {
-				return indexScoreLookup[a[0]] > indexScoreLookup[b[0]] ? -1 : 1;
-			});
-		} else {
+		if (Math.abs(originalDepth - depth) < STRONG_SEARCH_DEPTH) {
 			emptyIndexList.sort((a,b) => {
 				let scoreA = CountColorsOnRowColDiagV2(game, a, targetColor);
 				let scoreB = CountColorsOnRowColDiagV2(game, b, targetColor);
 				return scoreA > scoreB ? -1 : 1;
 			});
 		}
-
-		// emptyIndexList.sort((a,b) => {
-		// 	return indexScoreLookup[a[0]] > indexScoreLookup[b[0]] ? -1 : 1;
-		// });
 	}
 
 	return emptyIndexList;
@@ -426,7 +488,6 @@ function RotateBoard(game, quadrant, direction) {
 	}
 }
 
-
 function Evaluate(game, targetColor) {
 	let whiteStrength = EvaluateStrength(game, PIECES.WHITE);
 	let blackStrength = EvaluateStrength(game, PIECES.BLACK);
@@ -468,7 +529,7 @@ function EvaluateStrength(game, targetColor) {
 	return score;
 }
 
-function CountColorsOnRowColDiag(game, index, targetColor, print=false) {
+function CountColorsOnRowColDiag(game, index, targetColor) {
 	let rowIndices = ROW_INDICES[Math.floor(index/6)];
 	let colIndices = COL_INDICES[index%6];
 	let diagIndices = DIAGONAL_INDICES_FROM_INDEX[index];
@@ -505,15 +566,18 @@ function CountColorsOnRowColDiag(game, index, targetColor, print=false) {
 }
 
 function CountColorsOnRowColDiagV2(game, move, targetColor) {
-	let result = EvaluateStrength(game, targetColor);
+	// let result = EvaluateStrength(game, targetColor);
 	GamePieces[move[0]] = targetColor;
 	RotateBoard(game, move[1], move[2]);
 
-	result = EvaluateStrength(game, targetColor) - result;
+	// result = EvaluateStrength(game, targetColor) - result;
+	let result = EvaluateStrength(game, targetColor);
 
 	RotateBoard(game, move[1], !move[2]);
 	GamePieces[move[0]] = -1;
+
 	return result;
+	// return result + ((2*Math.random() - 1.0)*(result/10));
 }
 
 function CountRowColDiagScore(game, rowColDiagIndexList, targetColor) {
