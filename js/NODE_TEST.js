@@ -14,15 +14,15 @@ let PIECES = {'EMPTY': -1, 'BLACK': 0, 'WHITE': 1};
 let TURN = {
 	PLAYER: 0,
 	AI: 1,
-	PLAYER_COLOR: PIECES.WHITE,
-	AI_COLOR: PIECES.BLACK
+	PLAYER_COLOR: PIECES.BLACK,
+	AI_COLOR: PIECES.WHITE
 };
 let CURRENT_TURN = TURN.AI;
 let OTHER_PLAYER_LOOKUP = {[PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES.WHITE};
 
-const GAME_STR_TO_USE = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1';
+const GAME_STR_TO_USE = '';
 const SEARCH_DEPTH = 15;
-let STRONG_SEARCH_DEPTH = 5; // Bigger values take a lot longer at the start, but give quick results as the search gets deeper. (e.g. with a value of 3, search up to depth 3-4 will take much longer, but after it should be much faster)
+let STRONG_SEARCH_DEPTH = 0; // Bigger values take a lot longer at the start, but give quick results as the search gets deeper. (e.g. with a value of 3, search up to depth 3-4 will take much longer, but after it should be much faster)
 STRONG_SEARCH_DEPTH = Math.min(SEARCH_DEPTH, STRONG_SEARCH_DEPTH);
 
 // Track what piece is in each location (will be 36 elements long).
@@ -98,18 +98,9 @@ function setup() {
 
 	// Default Game Board is empty
 	for (let i = 0; i < 36; ++i) {
-		GamePieces.push(Math.floor(Math.random()*3)-1); // Testing Only, change to -1 after
-		// GamePieces.push(PIECES.EMPTY);
+		// GamePieces.push(Math.floor(Math.random()*3)-1); // Testing Only, change to -1 after
+		GamePieces.push(PIECES.EMPTY);
 	}
-
-	let aTime = Date.now();
-	for (let i = 0; i < 1_000_000; ++i) {
-		RotateBoard(GamePieces, Math.floor(Math.random()*4), !(i%2));
-	}
-	aTime = Date.now() - aTime;
-	console.log(aTime);
-	process.exit(0);
-
 
 	// let blackPieces = 2;
 	// let whitePieces = 2;
@@ -145,7 +136,7 @@ function setup() {
 	// GamePieces = '-1,-1,-1,0,1,-1,-1,0,1,1,0,0,0,1,1,1,0,1,1,0,-1,1,-1,0,0,0,0,1,1,-1,1,1,0,0,-1,-1'.split(',').map(x => parseInt(x));
 	// GamePieces = '-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,0'.split(',').map(x => parseInt(x));
 
-	// if (GAME_STR_TO_USE) GamePieces = GAME_STR_TO_USE.split(',').map(x => parseInt(x));
+	if (GAME_STR_TO_USE) GamePieces = GAME_STR_TO_USE.split(',').map(x => parseInt(x));
 
 	draw();
 }
@@ -213,6 +204,10 @@ function SearchAux(game, currentTurn) {
 
 			iteriveDeepening = result[1].map(x => parseInt(x.split(',')[0]));
 			console.log(`Depth (${depth}), Score (${result[0]}) (${PrettyResult(result[1][0].split(','))})`, `Calls (${searchCalls})`, `msTime (${depthTime})`);
+			console.log(`Size (${SearchResultMap.size}), Hits (${cacheHits}), Misses (${cacheMisses})\n`);
+			cacheHits = 0n;
+			cacheMisses = 0n;
+			SearchResultMap.clear();
 			depth++;
 
 			if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break;
@@ -236,11 +231,23 @@ function PrettyResult(result) {
 	return niceResults;
 }
 
-let evals = [];
-
+let SearchResultMap = new Map();
+let cacheHits = 0n;
+let cacheMisses = 0n;
 
 function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 	searchCalls += 1n;
+
+	let gameStrKey = game.toString();
+	let resultHasBeenCalculated = SearchResultMap.get(gameStrKey);
+
+	if (resultHasBeenCalculated) {
+		cacheHits++;
+		return JSON.parse(JSON.stringify(resultHasBeenCalculated));
+	} else {
+		cacheMisses++;
+	}
+
 
 	let currentGameScore = Evaluate(game, player);
 
@@ -252,6 +259,8 @@ function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 	if (listOfMoves.length === 0) return [currentGameScore, moveHistory];
 
 	let nextTurn = currentTurn === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK;
+
+	let valueToReturn;
 
 	if (player === currentTurn) {
 		let bestScore = Number.MIN_SAFE_INTEGER;
@@ -271,7 +280,6 @@ function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 			if (evaluationOfMove[0] > bestScore) {
 				bestScore = evaluationOfMove[0];
 				bestMovesList = evaluationOfMove[1];
-
 			}
 
 			if (bestScore >= beta) break;
@@ -279,7 +287,7 @@ function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 			alpha = Math.max(alpha, bestScore);
 		}
 
-		return [bestScore, bestMovesList];
+		valueToReturn = [bestScore, bestMovesList];
 	} else {
 		let bestScore = Number.MAX_SAFE_INTEGER;
 		let bestMovesList;
@@ -306,8 +314,11 @@ function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 			beta = Math.min(beta, bestScore);
 		}
 
-		return [bestScore, bestMovesList];
+		valueToReturn = [bestScore, bestMovesList];
 	}
+
+	SearchResultMap.set(gameStrKey, valueToReturn);
+	return valueToReturn;
 }
 
 const QUADRANT0_SYMMETRY_IGNORE = {0: true, 1: true, 2: true, 6: true};
