@@ -38,8 +38,8 @@ let FIVE_IN_A_ROW_WHITE = FIVE_IN_A_ROW_INDICES.map(indexList => {
 });
 let FIVE_IN_A_ROW_BLACK = FIVE_IN_A_ROW_WHITE.map(x => x >> 1n);
 
+const indexMap = [0,1,2,8,14,13,12,6,7, 3,4,5,11,17,16,15,9,10, 18,19,20,26,32,31,30,24,25, 21,22,23,29,35,34,33,27,28];
 function ConvertGameArrayToBigInt(game) {
-	const indexMap = [0,1,2,8,14,13,12,6,7, 3,4,5,11,17,16,15,9,10, 18,19,20,26,32,31,30,24,25, 21,22,23,29,35,34,33,27,28];
 
 	let gameAsBigInt = (game[0] === PIECES.BLACK ? PIECES_BINARY_INT_VALUES.BLACK : game[0] === PIECES.WHITE ? PIECES_BINARY_INT_VALUES.WHITE : 0n);
 
@@ -89,6 +89,33 @@ function RotateGame(game, quadrant, direction) {
 	return quadrantInteger;
 }
 
+let QUADRANT_INDICES = [0,1,2,8,14,13,12,6];
+let LEFT_TURN_ADD_AMOUNT = [2,7,12,5,-2,-7,-12,-5]; // Based on the QUADRANT_INDICES Array
+let RIGHT_TURN_ADD_AMOUNT = [12,5,-2,-7,-12,-5,2,7]; // Based on the QUADRANT_INDICES Array
+let QUADRANT_PLUS_AMOUNTS = [0,3,18,21];
+
+// game = game board
+// quadrant = 0,1,2,3 (TL, TR, BL, BR)
+// direction = false,true (left, right)
+function RotateBoardArray(game, quadrant, direction) {
+	let plusAmount = QUADRANT_PLUS_AMOUNTS[quadrant];
+
+	let oldLeftValues = [game[QUADRANT_INDICES[0]+plusAmount], game[QUADRANT_INDICES[1]+plusAmount]];
+	let oldRightValues = [game[QUADRANT_INDICES[6]+plusAmount], game[QUADRANT_INDICES[7]+plusAmount]];
+
+	if (!direction) {
+		for (let i = 0; i < QUADRANT_INDICES.length; ++i) {
+			if (i > 5) game[QUADRANT_INDICES[i]+plusAmount] = oldLeftValues[i-6];
+			else game[QUADRANT_INDICES[i]+plusAmount] = game[QUADRANT_INDICES[i]+plusAmount+LEFT_TURN_ADD_AMOUNT[i]];
+		}
+	} else {
+		for (let i = QUADRANT_INDICES.length-1; i > -1; --i) {
+			if (i < 2) game[QUADRANT_INDICES[i]+plusAmount] = oldRightValues[i];
+			else game[QUADRANT_INDICES[i]+plusAmount] = game[QUADRANT_INDICES[i]+plusAmount+RIGHT_TURN_ADD_AMOUNT[i]];
+		}
+	}
+}
+
 function CheckForWhiteWin(gameBigInt) {
 	for (let i = 0; i < FIVE_IN_A_ROW_WHITE.length; ++i) {
 		if ((gameBigInt & FIVE_IN_A_ROW_WHITE[i]) === FIVE_IN_A_ROW_WHITE[i]) return true;
@@ -119,6 +146,18 @@ function PrintGameArray(gameArray) {
 	}
 	console.log(['  ', ' ', ' ',' ',' ',' ',' '].join('___'));
 	console.log();
+}
+
+
+function RandomBitStringBigInt() {
+	let result = [];
+
+	for (let i = 0; i < 72; ++i) {
+		if (Math.random() < 0.5) result.push(0);
+		else result.push(1);
+	}
+
+	return BigInt(`0b${result.join('')}`);
 }
 
 let GamePieces = [];
@@ -161,10 +200,18 @@ let RotatedBoard = RotateGame(GamePiecesNumber, 1, true);
 console.log('White wins:', CheckForWhiteWin(GamePiecesNumber));
 console.log('Black wins:', CheckForBlackWin(GamePiecesNumber));
 
+console.log(RandomBitStringBigInt());
+console.log(RandomBitStringBigInt());
+console.log(RandomBitStringBigInt());
+console.log(RandomBitStringBigInt());
+
 let aTime = Date.now();
 for (let i = 0; i < 1_000_000; ++i) {
-	RotatedBoard = RotateGame(RotatedBoard, i%4, !(i%2));
-	CheckForWhiteWin(GamePiecesNumber)
+	RotateBoardArray(GamePieces, i%4, !(i%2));
+	// GamePiecesNumber = GamePieces.toString();
+	GamePiecesNumber = ConvertGameArrayToBigInt(GamePieces);
+	// RotatedBoard = RotateGame(RotatedBoard, i%4, !(i%2));
+	// CheckForWhiteWin(GamePiecesNumber)
 	// CheckForBlackWin(GamePiecesNumber)
 }
 aTime = Date.now() - aTime;

@@ -3,12 +3,12 @@ let tripletScore = 5; // Score for having three in a row
 let quadScore = 10; // Score for having four in a row
 
 let openEndPair = 3*pairScore; // Score for two in a row, but with an open end.
-let openEndTriplet = 3*tripletScore; // Score for three in a row, but with an open end.
+let openEndTriplet = 2.5*tripletScore; // Score for three in a row, but with an open end.
 let openEndQuad = 3*quadScore; // Score for four in a row, but with an open end.
 
 let doubleOpenEndPair = 3*openEndPair;
-let doubleOpenEndTriplet = 3*openEndTriplet;
-let doubleOpenEndQuad = 1000*openEndQuad;
+let doubleOpenEndTriplet = 2.5*openEndTriplet;
+let doubleOpenEndQuad = 10*openEndQuad;
 
 let PIECES = {'EMPTY': -1, 'BLACK': 0, 'WHITE': 1};
 let TURN = {
@@ -18,13 +18,11 @@ let TURN = {
 	AI_COLOR: PIECES.BLACK
 };
 let CURRENT_TURN = TURN.AI;
-// let CURRENT_TURN = TURN.PLAYER;
 let OTHER_PLAYER_LOOKUP = {[PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES.WHITE};
 
-// const GAME_STR_TO_USE = '';
-const GAME_STR_TO_USE = '-1,-1,0,-1,-1,-1,-1,-1,-1,-1,1,0,-1,-1,-1,1,-1,-1,-1,-1,1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1';
-const SEARCH_DEPTH = 5;
-let STRONG_SEARCH_DEPTH = 0; // Bigger values take a lot longer at the start, but give quick results as the search gets deeper. (e.g. with a value of 3, search up to depth 3-4 will take much longer, but after it should be much faster)
+const GAME_STR_TO_USE = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1';
+const SEARCH_DEPTH = 15;
+let STRONG_SEARCH_DEPTH = 5; // Bigger values take a lot longer at the start, but give quick results as the search gets deeper. (e.g. with a value of 3, search up to depth 3-4 will take much longer, but after it should be much faster)
 STRONG_SEARCH_DEPTH = Math.min(SEARCH_DEPTH, STRONG_SEARCH_DEPTH);
 
 // Track what piece is in each location (will be 36 elements long).
@@ -151,11 +149,17 @@ let gameOver = false;
 function draw() {
 
 	if (!gameOver) {
-		let result = SearchAux(GamePieces, TURN.AI_COLOR);
-		console.log(result);
-		gameHistory.push(GamePieces.toString());
-		GamePieces[result[0]] = TURN.AI_COLOR;
-		RotateBoard(GamePieces, result[1], result[2]);
+		// If the board is empty, choose a random starting move.
+		// if (GamePieces.filter(x => x === PIECES.EMPTY).length === GamePieces.length) {
+		// 	let randomStartChoice = Math.floor(Math.random()*GamePieces.length);
+		// 	GamePieces[randomStartChoice] = TURN.AI_COLOR;
+		// } else {
+			let result = SearchAux(GamePieces, TURN.AI_COLOR);
+			console.log(result);
+			gameHistory.push(GamePieces.toString());
+			GamePieces[result[0]] = TURN.AI_COLOR;
+			RotateBoard(GamePieces, result[1], result[2]);
+		// }
 
 		CURRENT_TURN = TURN.PLAYER;
 
@@ -185,25 +189,21 @@ function SearchAux(game, currentTurn) {
 			originalDepth = depth;
 			
 			depthTime = Date.now();
-			result = Search(game, depth, currentTurn, currentTurn, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+			result = Search(game, depth, currentTurn, currentTurn, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, []);
 			depthTime = Date.now() - depthTime;
 
-			if (depth === 1 && result === Number.MIN_SAFE_INTEGER) {
+			if (depth === 1 && result[0] === Number.MIN_SAFE_INTEGER) {
 				console.log('AI LOST!!!');
 				break;
 			}
 
-			if (result === Number.MAX_SAFE_INTEGER) {
-				console.log("AI Winning Move:", PrettyResult(bestIndex.split(',')));
+			if (result[0] === Number.MAX_SAFE_INTEGER) {
+				console.log("AI Winning Move:", PrettyResult(result[1][0].split(',')));
 				break;
 			} 
 
-			iteriveDeepening = JSON.parse(JSON.stringify(bestIndex));
-			console.log(`Depth (${depth}), Score (${result}) (${PrettyResult(bestIndex)})`, `Calls (${searchCalls})`, `msTime (${depthTime})`);
-			console.log(`Size (${SearchResultMap.size}), Hits (${cacheHits}), Misses (${cacheMisses})\n`);
-			cacheHits = 0n;
-			cacheMisses = 0n;
-			SearchResultMap.clear();
+			iteriveDeepening = result[1].map(x => parseInt(x.split(',')[0]));
+			console.log(`Depth (${depth}), Score (${result[0]}) (${PrettyResult(result[1][0].split(','))})`, `Calls (${searchCalls})`, `msTime (${depthTime})`);
 			depth++;
 
 			if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break;
@@ -214,157 +214,98 @@ function SearchAux(game, currentTurn) {
 		}
 	}
 
-	return bestIndex;
+	return result[1][0];
 }
 
 function PrettyResult(result) {
 	let niceResults = result.map(x => x);
-	niceResults[1] = niceResults[1] === 0 ? 'Q1' :
-					 niceResults[1] === 1 ? 'Q2' :
-					 niceResults[1] === 2 ? 'Q3' :
+	niceResults[1] = niceResults[1] === '0' ? 'Q1' :
+					 niceResults[1] === '1' ? 'Q2' :
+					 niceResults[1] === '2' ? 'Q3' :
 					'Q4';
-	niceResults[2] = niceResults[2] === false ? 'Left' : 'Right';
+	niceResults[2] = niceResults[2] === 'false' ? 'Left' : 'Right';
 	return niceResults;
 }
 
-const FULL_ROTATE_RIGHT_INDEX_MAP = [30,24,18,12,6,0, 31,25,19,13,7,1, 32,26,20,14,8,2, 33,27,21,15,9,3, 34,28,22,16,10,4, 35,29,23,17,11,5];
+let evals = [];
 
-function FullRotateRight(game) {
-	let tempGame = game.map(x => x);
 
-	for (let i = 0; i < FULL_ROTATE_RIGHT_INDEX_MAP.length; ++i) {
-		game[i] = tempGame[FULL_ROTATE_RIGHT_INDEX_MAP[i]];
-	}
-}
-
-const SearchResultMapMaxSize = 10_000_000;
-let SearchResultMap = new Map();
-let cacheHits = 0n;
-let cacheMisses = 0n;
-
-function Search(game, depth, player, currentTurn, alpha, beta) {
-	let gameStrKey1 = game.toString();
-	FullRotateRight(game);
-	let gameStrKey2 = game.toString();
-	FullRotateRight(game);
-	let gameStrKey3 = game.toString();
-	FullRotateRight(game);
-	let gameStrKey4 = game.toString();
-	FullRotateRight(game);
-
-	let cachedResult1 = SearchResultMap.get(gameStrKey1);
-	let cachedResult2 = SearchResultMap.get(gameStrKey2);
-	let cachedResult3 = SearchResultMap.get(gameStrKey3);
-	let cachedResult4 = SearchResultMap.get(gameStrKey4);
-
-	if (cachedResult1 !== undefined || cachedResult2 !== undefined || cachedResult3 !== undefined || cachedResult4 !== undefined) {
-		cacheHits++;
-		return JSON.parse(JSON.stringify(cachedResult1 || cachedResult2 || cachedResult3 || cachedResult4));
-	} else {
-		cacheMisses++;
-	}
-
+function Search(game, depth, player, currentTurn, alpha, beta, moveHistory) {
 	searchCalls += 1n;
 
 	let currentGameScore = Evaluate(game, player);
 
-	if (depth <= 0) {
-		if (SearchResultMap.size <= SearchResultMapMaxSize) {
-			SearchResultMap.set(gameStrKey1, currentGameScore);
-			SearchResultMap.set(gameStrKey2, currentGameScore);
-			SearchResultMap.set(gameStrKey3, currentGameScore);
-			SearchResultMap.set(gameStrKey4, currentGameScore);
-		}
-		return currentGameScore;
-	}
-	if (currentGameScore === Number.MAX_SAFE_INTEGER || currentGameScore === Number.MIN_SAFE_INTEGER) {
-		if (SearchResultMap.size <= SearchResultMapMaxSize) {
-			SearchResultMap.set(gameStrKey1, currentGameScore);
-			SearchResultMap.set(gameStrKey2, currentGameScore);
-			SearchResultMap.set(gameStrKey3, currentGameScore);
-			SearchResultMap.set(gameStrKey4, currentGameScore);
-		}
-		return currentGameScore;
-	}
+	if (depth <= 0) return [currentGameScore, moveHistory];
+	if (currentGameScore === Number.MAX_SAFE_INTEGER || currentGameScore === Number.MIN_SAFE_INTEGER) return [currentGameScore, moveHistory];
 
 	let listOfMoves = GetEmptyIndicies(game, currentTurn, depth);
 
-	if (listOfMoves.length === 0) {
-		if (SearchResultMap.size <= SearchResultMapMaxSize) {
-			SearchResultMap.set(gameStrKey1, currentGameScore);
-			SearchResultMap.set(gameStrKey2, currentGameScore);
-			SearchResultMap.set(gameStrKey3, currentGameScore);
-			SearchResultMap.set(gameStrKey4, currentGameScore);
-		}
-		return currentGameScore;
-	}
+	if (listOfMoves.length === 0) return [currentGameScore, moveHistory];
 
 	let nextTurn = currentTurn === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK;
 
-	let bestScore;
-
 	if (player === currentTurn) {
-		bestScore = Number.MIN_SAFE_INTEGER;
+		let bestScore = Number.MIN_SAFE_INTEGER;
+		let bestMovesList;
 
 		for (let i = 0; i < listOfMoves.length; ++i) {
 			// Modify the Game Board with the move
 			GamePieces[listOfMoves[i][0]] = currentTurn;
 			RotateBoard(GamePieces, listOfMoves[i][1], listOfMoves[i][2]);
 
-			let evaluationOfMove = Search(GamePieces, depth-1, player, nextTurn, alpha, beta);
+			let evaluationOfMove = Search(GamePieces, depth-1, player, nextTurn, alpha, beta, [...moveHistory, listOfMoves[i].toString()]);
 
 			// Undo the move from Game Board
 			RotateBoard(GamePieces, listOfMoves[i][1], !listOfMoves[i][2]);
 			GamePieces[listOfMoves[i][0]] = -1;
 
-			if (evaluationOfMove > bestScore) {
-				bestScore = evaluationOfMove;
-				bestIndex = listOfMoves[i];
+			if (evaluationOfMove[0] > bestScore) {
+				bestScore = evaluationOfMove[0];
+				bestMovesList = evaluationOfMove[1];
+
 			}
 
 			if (bestScore >= beta) break;
 
 			alpha = Math.max(alpha, bestScore);
 		}
+
+		return [bestScore, bestMovesList];
 	} else {
-		bestScore = Number.MAX_SAFE_INTEGER;
+		let bestScore = Number.MAX_SAFE_INTEGER;
+		let bestMovesList;
 
 		for (let i = 0; i < listOfMoves.length; ++i) {
 			// Modify the Game Board with the move
 			GamePieces[listOfMoves[i][0]] = currentTurn;
 			RotateBoard(GamePieces, listOfMoves[i][1], listOfMoves[i][2]);
 
-			let evaluationOfMove = Search(GamePieces, depth-1, player, nextTurn, alpha, beta);
+			let evaluationOfMove = Search(GamePieces, depth-1, player, nextTurn, alpha, beta, [...moveHistory, listOfMoves[i].toString()]);
 
 			// Undo the move from Game Board
 			RotateBoard(GamePieces, listOfMoves[i][1], !listOfMoves[i][2]);
 			GamePieces[listOfMoves[i][0]] = -1;
 
 			// Choosing the minimum here because we assume the opponent chooses best possible move (which gives the target player the lowest score)
-			if (evaluationOfMove < bestScore) {
-				bestScore = evaluationOfMove;
-				bestIndex = listOfMoves[i];
+			if (evaluationOfMove[0] < bestScore) {
+				bestScore = evaluationOfMove[0];
+				bestMovesList = evaluationOfMove[1];
 			}
 
 			if (bestScore <= alpha) break;
 
 			beta = Math.min(beta, bestScore);
 		}
-	}
 
-	if (SearchResultMap.size <= SearchResultMapMaxSize) {
-		SearchResultMap.set(gameStrKey1, bestScore);
-		SearchResultMap.set(gameStrKey2, bestScore);
-		SearchResultMap.set(gameStrKey3, bestScore);
-		SearchResultMap.set(gameStrKey4, bestScore);
+		return [bestScore, bestMovesList];
 	}
-	return bestScore;
 }
 
 const QUADRANT0_SYMMETRY_IGNORE = {0: true, 1: true, 2: true, 6: true};
 const QUADRANT1_SYMMETRY_IGNORE = {3: true, 4: true, 5: true, 9: true};
 const QUADRANT2_SYMMETRY_IGNORE = {18: true, 19: true, 20: true, 24: true};
 const QUADRANT3_SYMMETRY_IGNORE = {21: true, 22: true, 23: true, 27: true};
+const RotationLookup = [false, true];
 
 function GetEmptyIndicies(game, targetColor, depth) {
 	let emptyIndexList = [];
@@ -381,100 +322,101 @@ function GetEmptyIndicies(game, targetColor, depth) {
 	let bestScoreSoFar = 0;
 
 	for (let i = 0; i < game.length; ++i) {
-		if (game[i] !== PIECES.EMPTY) continue;
-		if (Q1s && QUADRANT0_SYMMETRY_IGNORE[i]) continue;
-		if (Q2s &&  QUADRANT1_SYMMETRY_IGNORE[i]) continue;
-		if (Q3s &&  QUADRANT2_SYMMETRY_IGNORE[i]) continue;
-		if (Q4s &&  QUADRANT3_SYMMETRY_IGNORE[i]) continue;
+		if (game[i] === PIECES.EMPTY) {
+			if (Q1s && QUADRANT0_SYMMETRY_IGNORE[i]) continue;
+			else if (Q2s &&  QUADRANT1_SYMMETRY_IGNORE[i]) continue;
+			else if (Q3s &&  QUADRANT2_SYMMETRY_IGNORE[i]) continue;
+			else if (Q4s &&  QUADRANT3_SYMMETRY_IGNORE[i]) continue;
 
-		quadrantsChoosen = 0;
+			quadrantsChoosen = 0;
 
-		if (!Q1s || !QuadrantSymmetricWithPiece(game, i, 0)) {
-			leftScore = CountColorsOnRowColDiagV2(game, [i, 0, false], targetColor);
-			rightScore = CountColorsOnRowColDiagV2(game, [i, 0, true], targetColor);
+			if (!Q1s || !QuadrantSymmetricWithPiece(game, i, 0)) {
+				leftScore = CountColorsOnRowColDiagV2(game, [i, 0, false], targetColor);
+				rightScore = CountColorsOnRowColDiagV2(game, [i, 0, true], targetColor);
 
-			if (leftScore > bestScoreSoFar) {
-				emptyIndexList.unshift([i, 0, false]);
-				emptyIndexList.push([i, 0, true]);
-				bestScoreSoFar = leftScore;
+				if (leftScore > bestScoreSoFar) {
+					emptyIndexList.unshift([i, 0, false]);
+					emptyIndexList.push([i, 0, true]);
+					bestScoreSoFar = leftScore;
+				}
+				else if (rightScore > bestScoreSoFar) {
+					emptyIndexList.push([i, 0, false]);
+					emptyIndexList.unshift([i, 0, true]);
+					bestScoreSoFar = rightScore;
+				}
+				else {
+					emptyIndexList.push([i, 0, false]);
+					emptyIndexList.push([i, 0, true]);
+				}
+				++quadrantsChoosen;
 			}
-			else if (rightScore > bestScoreSoFar) {
+
+			if (!Q2s || !QuadrantSymmetricWithPiece(game, i, 1)) {
+				leftScore = CountColorsOnRowColDiagV2(game, [i, 1, false], targetColor);
+				rightScore = CountColorsOnRowColDiagV2(game, [i, 1, true], targetColor);
+
+				if (leftScore > bestScoreSoFar) {
+					emptyIndexList.unshift([i, 1, false]);
+					emptyIndexList.push([i, 1, true]);
+					bestScoreSoFar = leftScore;
+				}
+				else if (rightScore > bestScoreSoFar) {
+					emptyIndexList.push([i, 1, false]);
+					emptyIndexList.unshift([i, 1, true]);
+					bestScoreSoFar = rightScore;
+				}
+				else {
+					emptyIndexList.push([i, 1, false]);
+					emptyIndexList.push([i, 1, true]);
+				}
+				++quadrantsChoosen;
+			}
+
+			if (!Q3s || !QuadrantSymmetricWithPiece(game, i, 2)) {
+				leftScore = CountColorsOnRowColDiagV2(game, [i, 2, false], targetColor);
+				rightScore = CountColorsOnRowColDiagV2(game, [i, 2, true], targetColor);
+
+				if (leftScore > bestScoreSoFar) {
+					emptyIndexList.unshift([i, 2, false]);
+					emptyIndexList.push([i, 2, true]);
+					bestScoreSoFar = leftScore;
+				}
+				else if (rightScore > bestScoreSoFar) {
+					emptyIndexList.push([i, 2, false]);
+					emptyIndexList.unshift([i, 2, true]);
+					bestScoreSoFar = rightScore;
+				}
+				else {
+					emptyIndexList.push([i, 2, false]);
+					emptyIndexList.push([i, 2, true]);
+				}
+				++quadrantsChoosen;
+			}
+
+			if (!Q4s || !QuadrantSymmetricWithPiece(game, i, 3)) {
+				leftScore = CountColorsOnRowColDiagV2(game, [i, 3, false], targetColor);
+				rightScore = CountColorsOnRowColDiagV2(game, [i, 3, true], targetColor);
+
+				if (leftScore > bestScoreSoFar) {
+					emptyIndexList.unshift([i, 3, false]);
+					emptyIndexList.push([i, 3, true]);
+					bestScoreSoFar = leftScore;
+				}
+				else if (rightScore > bestScoreSoFar) {
+					emptyIndexList.push([i, 3, false]);
+					emptyIndexList.unshift([i, 3, true]);
+					bestScoreSoFar = rightScore;
+				}
+				else {
+					emptyIndexList.push([i, 3, false]);
+					emptyIndexList.push([i, 3, true]);
+				}
+				++quadrantsChoosen;
+			}
+
+			if (quadrantsChoosen === 0) {
 				emptyIndexList.push([i, 0, false]);
-				emptyIndexList.unshift([i, 0, true]);
-				bestScoreSoFar = rightScore;
 			}
-			else {
-				emptyIndexList.push([i, 0, false]);
-				emptyIndexList.push([i, 0, true]);
-			}
-			++quadrantsChoosen;
-		}
-
-		if (!Q2s || !QuadrantSymmetricWithPiece(game, i, 1)) {
-			leftScore = CountColorsOnRowColDiagV2(game, [i, 1, false], targetColor);
-			rightScore = CountColorsOnRowColDiagV2(game, [i, 1, true], targetColor);
-
-			if (leftScore > bestScoreSoFar) {
-				emptyIndexList.unshift([i, 1, false]);
-				emptyIndexList.push([i, 1, true]);
-				bestScoreSoFar = leftScore;
-			}
-			else if (rightScore > bestScoreSoFar) {
-				emptyIndexList.push([i, 1, false]);
-				emptyIndexList.unshift([i, 1, true]);
-				bestScoreSoFar = rightScore;
-			}
-			else {
-				emptyIndexList.push([i, 1, false]);
-				emptyIndexList.push([i, 1, true]);
-			}
-			++quadrantsChoosen;
-		}
-
-		if (!Q3s || !QuadrantSymmetricWithPiece(game, i, 2)) {
-			leftScore = CountColorsOnRowColDiagV2(game, [i, 2, false], targetColor);
-			rightScore = CountColorsOnRowColDiagV2(game, [i, 2, true], targetColor);
-
-			if (leftScore > bestScoreSoFar) {
-				emptyIndexList.unshift([i, 2, false]);
-				emptyIndexList.push([i, 2, true]);
-				bestScoreSoFar = leftScore;
-			}
-			else if (rightScore > bestScoreSoFar) {
-				emptyIndexList.push([i, 2, false]);
-				emptyIndexList.unshift([i, 2, true]);
-				bestScoreSoFar = rightScore;
-			}
-			else {
-				emptyIndexList.push([i, 2, false]);
-				emptyIndexList.push([i, 2, true]);
-			}
-			++quadrantsChoosen;
-		}
-
-		if (!Q4s || !QuadrantSymmetricWithPiece(game, i, 3)) {
-			leftScore = CountColorsOnRowColDiagV2(game, [i, 3, false], targetColor);
-			rightScore = CountColorsOnRowColDiagV2(game, [i, 3, true], targetColor);
-
-			if (leftScore > bestScoreSoFar) {
-				emptyIndexList.unshift([i, 3, false]);
-				emptyIndexList.push([i, 3, true]);
-				bestScoreSoFar = leftScore;
-			}
-			else if (rightScore > bestScoreSoFar) {
-				emptyIndexList.push([i, 3, false]);
-				emptyIndexList.unshift([i, 3, true]);
-				bestScoreSoFar = rightScore;
-			}
-			else {
-				emptyIndexList.push([i, 3, false]);
-				emptyIndexList.push([i, 3, true]);
-			}
-			++quadrantsChoosen;
-		}
-
-		if (quadrantsChoosen === 0) {
-			emptyIndexList.push([i, 0, false]);
 		}
 	}
 
@@ -547,6 +489,7 @@ function RotateBoard(game, quadrant, direction) {
 		}
 	}
 }
+
 
 function Evaluate(game, targetColor) {
 	let whiteStrength = EvaluateStrength(game, PIECES.WHITE);
