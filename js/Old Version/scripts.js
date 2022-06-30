@@ -435,8 +435,8 @@ function SearchAux(game, currentTurn) {
 	let depthTime = 0;
 	searchCalls = 0n;
 
-	// while (depth <= SEARCH_DEPTH) {
-	while (true) {
+	while (depth <= SEARCH_DEPTH) {
+	// while (true) {
 		searchCalls = 0n;
 		originalDepth = depth;
 
@@ -475,17 +475,19 @@ function PrettyResult(result) {
 	return niceResults;
 }
 
-let evals = [];
-
 function Search(game, depth, player, currentTurn, alpha, beta) {
 	searchCalls += 1n;
 
 	let currentGameScore = Evaluate(game, player);
 
+	console.log(depth, currentGameScore);
+
 	if (depth <= 0) return currentGameScore;
 	if (currentGameScore === Number.MAX_SAFE_INTEGER || currentGameScore === Number.MIN_SAFE_INTEGER) return currentGameScore;
 
 	let listOfMoves = GetEmptyIndicies(game, currentTurn);
+
+	console.log(listOfMoves);
 
 	if (listOfMoves.length === 0) return currentGameScore;
 
