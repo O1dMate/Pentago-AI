@@ -11,11 +11,11 @@ let PIECES = { 'EMPTY': -1, 'BLACK': 0, 'WHITE': 1 };
 let TURN = {
 	PLAYER: 0,
 	AI: 1,
-	PLAYER_COLOR: PIECES.WHITE,
-	AI_COLOR: PIECES.BLACK,
+	PLAYER_COLOR: PIECES.BLACK,
+	AI_COLOR: PIECES.WHITE,
 };
 
-let SEARCH_DEPTH = 5;
+let SEARCH_DEPTH = 4;
 // ******************** UPDATABLE OPTIONS ********************
 
 let pairScore = 2; // Score for having two in a row
@@ -39,11 +39,38 @@ function StartConfiguration() {
 		GamePieces.push(PIECES.EMPTY);
 	}
 
+	// let blackPieces = 2;
+	// let whitePieces = 2;
+
+	// while (blackPieces > 0) {
+	// 	let i = Math.floor(Math.random() * GamePieces.length);
+
+	// 	while (GamePieces[i] !== PIECES.EMPTY) {
+	// 		i = Math.floor(Math.random() * GamePieces.length);
+	// 	}
+
+	// 	GamePieces[i] = PIECES.BLACK;
+	// 	blackPieces--;
+	// }
+
+	// while (whitePieces > 0) {
+	// 	let i = Math.floor(Math.random() * GamePieces.length);
+
+	// 	while (GamePieces[i] !== PIECES.EMPTY) {
+	// 		i = Math.floor(Math.random() * GamePieces.length);
+	// 	}
+
+	// 	GamePieces[i] = PIECES.WHITE;
+	// 	whitePieces--;
+	// }
+
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 
-	// GamePieces = '-1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '1,0,1,0,0,0,0,1,1,0,1,1,1,0,0,1,1,0,0,1,1,-1,-1,0,1,-1,0,1,0,-1,-1,0,-1,0,1,1'.split(',').map(x => parseInt(x));
+	GamePieces = '1,0,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
 
-	GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 	/* AI as White
 		Depth (1), Score (282) [ 17, 'Q2', 'Right' ] Calls (105) msTime (3)
 		Depth (2), Score (-86) [ 12, 'Q1', 'Left' ] Calls (1521) msTime (19)
@@ -59,20 +86,21 @@ function StartConfiguration() {
 
 // To be called each frame
 function draw() {
-	console.log('\nMinimax AI (α+β pruning + MO + ID + Transposition Lookup 10M)');
-	abMoIdTranspositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	// Transposition Table only seems useful in the early stages of the game. In the Endgame, the board isn't almost certain not symmetric so the Transposition table doesn't help much.
+	// console.log('\nMinimax AI (α+β pruning + MO + ID + Transposition Lookup 10M)');
+	// abMoIdTranspositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
 
-	console.log('\nMinimax AI (α+β pruning + MO + Iterative Deepening)');
-	abMoIterativeDeepeningAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	// console.log('\nMinimax AI (α+β pruning + MO + Iterative Deepening)');
+	// abMoIterativeDeepeningAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
 	
 	console.log('\nMinimax AI (α+β pruning + Move Ordering)');
 	abMoveOrderingAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
 	
-	console.log('\nMinimax AI (α+β pruning)');
-	alphaBetaOnlyAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	// console.log('\nMinimax AI (α+β pruning)');
+	// alphaBetaOnlyAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
 
-	console.log(`\nStandard Minimax AI (no optimizations)`);
-	standardAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	// console.log(`\nStandard Minimax AI (no optimizations)`);
+	// standardAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
 }
 
 StartConfiguration();

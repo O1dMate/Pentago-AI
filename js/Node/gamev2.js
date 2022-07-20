@@ -17,6 +17,8 @@ const QUADRANT_REVERSE_INTEGERS = [
 ];
 const QUADRANT_ROTATION_BIT_SHIFT_AMOUNT = [54n, 36n, 18n, 0n];
 
+console.log({QUADRANT_REVERSE_INTEGERS});
+
 let FIVE_IN_A_ROW_INDICES = [
 	[0,1,2,3,4,5],[6,7,8,9,10,11],[12,13,14,15,16,17],[18,19,20,21,22,23],[24,25,26,27,28,29],[30,31,32,33,34,35],
 	[0,6,12,18,24,30],[1,7,13,19,25,31],[2,8,14,20,26,32],[3,9,15,21,27,33],[4,10,16,22,28,34],[5,11,17,23,29,35],
@@ -37,6 +39,11 @@ let FIVE_IN_A_ROW_WHITE = FIVE_IN_A_ROW_INDICES.map(indexList => {
 	}).reduce((accum, cur) => accum | cur, 0n);
 });
 let FIVE_IN_A_ROW_BLACK = FIVE_IN_A_ROW_WHITE.map(x => x >> 1n);
+
+console.log('FIVE_IN_A_ROW_WHITE');
+console.log(FIVE_IN_A_ROW_WHITE);
+
+// console.log(FIVE_IN_A_ROW_WHITE);
 
 const indexMap = [0,1,2,8,14,13,12,6,7, 3,4,5,11,17,16,15,9,10, 18,19,20,26,32,31,30,24,25, 21,22,23,29,35,34,33,27,28];
 function ConvertGameArrayToBigInt(game) {
@@ -76,7 +83,7 @@ function GameBigIntToGameArray(gameBigInt) {
 function RotateGame(game, quadrant, direction) {
 	let quadrantInteger = (QUADRANT_INTEGERS[quadrant] & game) >> QUADRANT_ROTATION_BIT_SHIFT_AMOUNT[quadrant];
 	let centerValue = quadrantInteger & 3n;
-	// let finalValue = quadrantInteger >> 2n;
+	quadrantInteger = quadrantInteger >> 2n;
 
 	if (direction) quadrantInteger = ((((quadrantInteger >> 4n) | (quadrantInteger << 12n)) & 65535n) << 2n) | centerValue;
 	else quadrantInteger = ((((quadrantInteger << 4n) | (quadrantInteger >> 12n)) & 65535n) << 2n) | centerValue;
@@ -164,8 +171,8 @@ let GamePieces = [];
 let GamePiecesNumber = 0n;
 
 for (let i = 0; i < 36; ++i) {
-	// GamePieces.push(-1);
-	GamePieces.push(Math.floor(Math.random()*3 - 1));
+	GamePieces.push(-1);
+	// GamePieces.push(Math.floor(Math.random()*3 - 1));
 }
 
 // GamePieces[0] = PIECES.BLACK;
@@ -177,8 +184,9 @@ for (let i = 0; i < 36; ++i) {
 // GamePieces[24] = PIECES.BLACK;
 // GamePieces[30] = PIECES.WHITE;
 
-// GamePieces[7] = PIECES.WHITE;
-// GamePieces[6] = PIECES.WHITE;
+GamePieces[0] = PIECES.WHITE;
+GamePieces[6] = PIECES.WHITE;
+GamePieces[7] = PIECES.WHITE;
 
 PrintGameArray(GamePieces);
 console.log('*********************************');
@@ -187,10 +195,11 @@ console.log('*********************************');
 // console.log(GamePieces.toString() === GameBigIntToGameArray(ConvertGameArrayToBigInt(GamePieces)).toString());
 
 GamePiecesNumber = ConvertGameArrayToBigInt(GamePieces);
-// console.log(GamePiecesNumber);
-// console.log(GamePiecesNumber.toString(2));
+console.log(GamePiecesNumber);
+console.log(GamePiecesNumber.toString(2));
 
-let RotatedBoard = RotateGame(GamePiecesNumber, 1, true);
+let RotatedBoard = RotateGame(GamePiecesNumber, 0, false);
+// console.log(RotatedBoard);
 // RotatedBoard = RotateGame(RotatedBoard, 2, true);
 // RotatedBoard = RotateGame(RotatedBoard, 2, true);
 // RotatedBoard = RotateGame(RotatedBoard, 2, true);
@@ -200,17 +209,17 @@ let RotatedBoard = RotateGame(GamePiecesNumber, 1, true);
 console.log('White wins:', CheckForWhiteWin(GamePiecesNumber));
 console.log('Black wins:', CheckForBlackWin(GamePiecesNumber));
 
-console.log(RandomBitStringBigInt());
-console.log(RandomBitStringBigInt());
-console.log(RandomBitStringBigInt());
-console.log(RandomBitStringBigInt());
+// console.log(RandomBitStringBigInt());
+// console.log(RandomBitStringBigInt());
+// console.log(RandomBitStringBigInt());
+// console.log(RandomBitStringBigInt());
 
 let aTime = Date.now();
 for (let i = 0; i < 1_000_000; ++i) {
 	RotateBoardArray(GamePieces, i%4, !(i%2));
 	// GamePiecesNumber = GamePieces.toString();
-	GamePiecesNumber = ConvertGameArrayToBigInt(GamePieces);
-	// RotatedBoard = RotateGame(RotatedBoard, i%4, !(i%2));
+	// GamePiecesNumber = ConvertGameArrayToBigInt(GamePieces);
+	RotatedBoard = RotateGame(RotatedBoard, i%4, !(i%2));
 	// CheckForWhiteWin(GamePiecesNumber)
 	// CheckForBlackWin(GamePiecesNumber)
 }

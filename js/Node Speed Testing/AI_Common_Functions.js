@@ -1,5 +1,6 @@
 let PIECES = { 'EMPTY': -1, 'BLACK': 0, 'WHITE': 1 };
 
+const OTHER_PLAYER_LOOKUP = { [PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES.WHITE };
 const ROW_INDICES = [[0, 1, 2, 3, 4, 5], [6, 7, 8, 9, 10, 11], [12, 13, 14, 15, 16, 17], [18, 19, 20, 21, 22, 23], [24, 25, 26, 27, 28, 29], [30, 31, 32, 33, 34, 35]];
 const COL_INDICES = [[0, 6, 12, 18, 24, 30], [1, 7, 13, 19, 25, 31], [2, 8, 14, 20, 26, 32], [3, 9, 15, 21, 27, 33], [4, 10, 16, 22, 28, 34], [5, 11, 17, 23, 29, 35]];
 const DIAGONAL_INDICES = [[6, 13, 20, 27, 34], [0, 7, 14, 21, 28, 35], [1, 8, 15, 22, 29], [24, 19, 14, 9, 4], [30, 25, 20, 15, 10, 5], [31, 26, 21, 16, 11]];
@@ -84,20 +85,23 @@ function PrettyResult(result) {
 }
 
 let QUADRANT_CENTER = { 7: true, 10: true, 25: true, 28: true };
-let QUADRANT_SYMMETRIC_INDICES = [0, 1, 2, 6, 7, 8, 12, 13, 14];
+let QUADRANT_SYMMETRIC_INDICES_MAP = { 0: true, 1: true, 2: true, 6: true, 8: true, 12: true, 13: true, 14: true };
+let QUADRANT_SYMMETRIC_INDICES_ARRAY = [0, 1, 2, 6, 8, 12, 13, 14];
 let QUADRANT_SYMMETRIC_PLUS_AMOUNTS = [0, 3, 18, 21];
 
 function QuadrantSymmetricWithPiece(game, index, quadrant) {
 	let plusAmount = QUADRANT_SYMMETRIC_PLUS_AMOUNTS[quadrant];
 	let tempIndex = 0;
 
-	for (let i = 0; i < QUADRANT_SYMMETRIC_INDICES.length; ++i) {
-		tempIndex = QUADRANT_SYMMETRIC_INDICES[i] + plusAmount;
+	if (QUADRANT_SYMMETRIC_INDICES_MAP[index+plusAmount]) return false;
+
+	for (let i = 0; i < QUADRANT_SYMMETRIC_INDICES_ARRAY.length; ++i) {
+		tempIndex = QUADRANT_SYMMETRIC_INDICES_ARRAY[i] + plusAmount;
 
 		if (game[tempIndex] !== PIECES.EMPTY && !QUADRANT_CENTER[tempIndex]) return false;
 		if (tempIndex === index && !QUADRANT_CENTER[tempIndex]) return false;
 	}
-
+	
 	return true;
 }
 
@@ -233,7 +237,7 @@ function CountRowColDiagScore(game, rowColDiagIndexList, targetColor) {
 function ScoreConsecutive(currentScore, consecutive, openStart, openEnd) {
 	if (consecutive === 2) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 2 * openEndPair : openEndPair) : pairScore);
 	else if (consecutive === 3) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 2 * openEndTriplet : openEndTriplet) : tripletScore);
-	else if (consecutive === 4) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? (Number.MAX_SAFE_INTEGER - 1) : openEndQuad) : quadScore);
+	else if (consecutive === 4) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 100_000 : openEndQuad) : quadScore);
 	return Number.MAX_SAFE_INTEGER;
 }
 
@@ -241,7 +245,7 @@ function CountColorsOnRowColDiagV2(game, move, targetColor) {
 	game[move[0]] = targetColor;
 	RotateBoard(game, move[1], move[2]);
 
-	let result = EvaluateStrength(game, targetColor);
+	let result = Evaluate(game, targetColor);
 
 	RotateBoard(game, move[1], !move[2]);
 	game[move[0]] = -1;
@@ -249,4 +253,117 @@ function CountColorsOnRowColDiagV2(game, move, targetColor) {
 	return result;
 }
 
-module.exports = { PrettyResult, QuadrantSymmetricWithPiece, RotateBoard, Evaluate, EvaluateStrength, CountColorsOnRowColDiag, CountColorsOnRowColDiagV2, CountRowColDiagScore, ScoreConsecutive };
+function ScoreAfterRotation(game, move, targetColor) {
+	RotateBoard(game, move[0], move[1]);
+	let result = Evaluate(game, targetColor);
+	RotateBoard(game, move[0], !move[1]);
+
+	return result;
+}
+
+function IsForcedMoveForPlayer(game, targetColor) {
+	// Check for 3 in a single row (NOT only in a row), with open ends, and no opponent pieces
+	// The other player must block prevent 4 in a row with an open end or they will lose.
+	if (_ForcedMoveAuxOne(game, targetColor)) return true;
+
+	// Check for 4 in a single row (NOT only in a row), with an empty spot in the middle that will make 5 in a row.
+	// This check all detects 4 in a row with either an open end or both open ends.
+	// The other player must block this empty spot or they will lose.
+	if (_ForcedMoveAuxTwo(game, targetColor)) return true;
+
+	return false;
+}
+
+function _ForcedMoveAuxOne(game, targetColor) {
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		if (_ForcedMoveCheckThreeInARowOpenEndNoOpponent(game, ROW_INDICES[i], targetColor)) return true;
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		if (_ForcedMoveCheckThreeInARowOpenEndNoOpponent(game, COL_INDICES[i], targetColor)) return true;
+	}
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (_ForcedMoveCheckThreeInARowOpenEndNoOpponent(game, DIAGONAL_INDICES[i], targetColor)) return true;
+	}
+
+	return false;
+}
+
+function _ForcedMoveAuxTwo(game, targetColor) {
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		if (_ForcedMoveCheckFourInARowAboutToBeFive(game, ROW_INDICES[i], targetColor)) return true;
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		if (_ForcedMoveCheckFourInARowAboutToBeFive(game, COL_INDICES[i], targetColor)) return true;
+	}
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (_ForcedMoveCheckFourInARowAboutToBeFive(game, DIAGONAL_INDICES[i], targetColor)) return true;
+	}
+
+	return false;
+}
+
+// Check for 3 in a single row (NOT only in a row), with open ends, and no opponent pieces
+// The other player must block prevent 4 in a row with an open end or they will lose.
+function _ForcedMoveCheckThreeInARowOpenEndNoOpponent(game, rowColDiagIndexList, targetColor) {
+	// If the row is only length 5, this isn't a concern. Even if the three in a row have open ends, adding an extra one will remove the open end. Only rows of size 6 can lead to 4 in a row with open ends.
+	if (rowColDiagIndexList.length === 5) return false;
+
+	// If the two ends aren't empty, then this won't lead to 4 in a row with open ends.
+	if (game[rowColDiagIndexList[0]] !== PIECES.EMPTY) return false;
+	if (game[rowColDiagIndexList[5]] !== PIECES.EMPTY) return false;
+
+	let numberOfEmpties = 0;
+
+	for (let i = 1; i < rowColDiagIndexList.length-1; ++i) {
+		if (game[rowColDiagIndexList[i]] === targetColor) return false;
+
+		if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) numberOfEmpties++;
+
+		if (numberOfEmpties > 1) return false;
+	}
+
+	return true;
+}
+
+function _ForcedMoveCheckFourInARowAboutToBeFive(game, rowColDiagIndexList, targetColor) {
+	let emptyCount = 0;
+	let targetColorCount = 0;
+
+	if (rowColDiagIndexList.length === 6) {
+		for (let i = 0; i < rowColDiagIndexList.length-1; ++i) {
+			if (game[rowColDiagIndexList[i]] === targetColor) break;
+			else if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+
+		emptyCount = 0;
+		targetColorCount = 0;
+
+		for (let i = 1; i < rowColDiagIndexList.length; ++i) {
+			if (game[rowColDiagIndexList[i]] === targetColor) break;
+			else if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+	} else {
+		for (let i = 0; i < rowColDiagIndexList.length; ++i) {
+			if (game[rowColDiagIndexList[i]] === targetColor) return false;
+			else if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+	}
+
+
+	return false;
+}
+
+module.exports = { PrettyResult, QuadrantSymmetricWithPiece, RotateBoard, Evaluate, EvaluateStrength, CountColorsOnRowColDiag, CountColorsOnRowColDiagV2, CountRowColDiagScore, ScoreConsecutive, ScoreAfterRotation, IsForcedMoveForPlayer };

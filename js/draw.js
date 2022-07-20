@@ -9,7 +9,7 @@ let CURRENT_TURN = TURN.PLAYER;
 let OTHER_PLAYER_LOOKUP = {[PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES.WHITE};
 
 let currentlyHighlightedPieceIndex = -1;
-let SEARCH_DEPTH = 4;
+let SEARCH_DEPTH = 3;
 
 let SCREEN_WIDTH = 0;
 let SCREEN_HEIGHT = 0;
@@ -96,7 +96,140 @@ function StartConfiguration() {
 		GamePieces.push(PIECES.EMPTY);
 	}
 
-	GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	GamePieces[0] = PIECES.WHITE;
+	GamePieces[10] = PIECES.WHITE;
+	GamePieces[25] = PIECES.WHITE;
+	GamePieces[35] = PIECES.WHITE;
+	GamePieces[1] = PIECES.BLACK;
+	GamePieces[6] = PIECES.BLACK;
+	GamePieces[29] = PIECES.BLACK;
+	GamePieces[34] = PIECES.BLACK;
+	// GamePieces[5] = PIECES.BLACK;
+
+	// GamePieces[4] = PIECES.BLACK;
+	// GamePieces[9] = PIECES.BLACK;
+	// GamePieces[14] = PIECES.BLACK;
+	// GamePieces[19] = PIECES.BLACK;
+	// GamePieces[24] = PIECES.BLACK;
+	
+	// GamePieces[3] = PIECES.BLACK;
+	// GamePieces[5] = PIECES.BLACK;
+	// GamePieces[14] = PIECES.BLACK;
+	// GamePieces[15] = PIECES.BLACK;
+	// GamePieces[17] = PIECES.BLACK;
+	// GamePieces[10] = PIECES.WHITE;
+	// GamePieces[18] = PIECES.WHITE;
+	// GamePieces[25] = PIECES.WHITE;
+	// GamePieces[30] = PIECES.WHITE;
+	// GamePieces[32] = PIECES.WHITE;
+
+	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
+}
+
+function IsForcedMoveForPlayer(game, targetColor) {
+	// Check for 3 in a single row (NOT only in a row), with open ends, and no opponent pieces
+	// The other player must block prevent 4 in a row with an open end or they will lose.
+	if (_ForcedMoveAuxOne(game, targetColor)) return true;
+
+	// Check for 4 in a single row (NOT only in a row), with an empty spot in the middle that will make 5 in a row.
+	// This check all detects 4 in a row with either an open end or both open ends.
+	// The other player must block this empty spot or they will lose.
+	if (_ForcedMoveAuxTwo(game, targetColor)) return true;
+
+	return false;
+}
+
+function _ForcedMoveAuxOne(game, targetColor) {
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		if (_ForcedMoveCheckThreeInARowOpenEndNoOpponent(game, ROW_INDICES[i], targetColor)) return true;
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		if (_ForcedMoveCheckThreeInARowOpenEndNoOpponent(game, COL_INDICES[i], targetColor)) return true;
+	}
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (_ForcedMoveCheckThreeInARowOpenEndNoOpponent(game, DIAGONAL_INDICES[i], targetColor)) return true;
+	}
+
+	return false;
+}
+
+function _ForcedMoveAuxTwo(game, targetColor) {
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		if (_ForcedMoveCheckFourInARowAboutToBeFive(game, ROW_INDICES[i], targetColor)) return true;
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		if (_ForcedMoveCheckFourInARowAboutToBeFive(game, COL_INDICES[i], targetColor)) return true;
+	}
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (_ForcedMoveCheckFourInARowAboutToBeFive(game, DIAGONAL_INDICES[i], targetColor)) return true;
+	}
+
+	return false;
+}
+
+// Check for 3 in a single row (NOT only in a row), with open ends, and no opponent pieces
+// The other player must block prevent 4 in a row with an open end or they will lose.
+function _ForcedMoveCheckThreeInARowOpenEndNoOpponent(game, rowColDiagIndexList, targetColor) {
+	// If the row is only length 5, this isn't a concern. Even if the three in a row have open ends, adding an extra one will remove the open end. Only rows of size 6 can lead to 4 in a row with open ends.
+	if (rowColDiagIndexList.length === 5) return false;
+
+	// If the two ends aren't empty, then this won't lead to 4 in a row with open ends.
+	if (game[rowColDiagIndexList[0]] !== PIECES.EMPTY) return false;
+	if (game[rowColDiagIndexList[5]] !== PIECES.EMPTY) return false;
+
+	let numberOfEmpties = 0;
+
+	for (let i = 1; i < rowColDiagIndexList.length-1; ++i) {
+		if (game[rowColDiagIndexList[i]] === targetColor) return false;
+
+		if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) numberOfEmpties++;
+
+		if (numberOfEmpties > 1) return false;
+	}
+
+	return true;
+}
+
+function _ForcedMoveCheckFourInARowAboutToBeFive(game, rowColDiagIndexList, targetColor) {
+	let emptyCount = 0;
+	let targetColorCount = 0;
+
+	if (rowColDiagIndexList.length === 6) {
+		for (let i = 0; i < rowColDiagIndexList.length-1; ++i) {
+			if (game[rowColDiagIndexList[i]] === targetColor) break;
+			else if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+
+		emptyCount = 0;
+		targetColorCount = 0;
+
+		for (let i = 1; i < rowColDiagIndexList.length; ++i) {
+			if (game[rowColDiagIndexList[i]] === targetColor) break;
+			else if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+	} else {
+		for (let i = 0; i < rowColDiagIndexList.length; ++i) {
+			if (game[rowColDiagIndexList[i]] === targetColor) return false;
+			else if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+	}
+
+
+	return false;
 }
 
 // Initial Setup
@@ -143,6 +276,8 @@ function setup() {
 
 	StartConfiguration();
 	frameRate(5);
+
+	console.log(IsForcedMoveForPlayer(GamePieces, PIECES.WHITE), IsForcedMoveForPlayer(GamePieces, PIECES.BLACK)); 
 }
 
 let gameHistory = [];

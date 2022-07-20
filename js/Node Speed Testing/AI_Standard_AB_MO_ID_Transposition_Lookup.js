@@ -5,7 +5,7 @@ let PIECES = { 'EMPTY': -1, 'BLACK': 0, 'WHITE': 1 };
 
 let originalDepth = 1;
 let bestIndex = -1;
-let iterativeDeepening = null;
+let iterativeDeepening = [];
 let searchCalls = 0n;
 
 function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
@@ -43,9 +43,13 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
 			break;
 		}
 
-		iterativeDeepening = bestIndex[0];
 		console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
 		SearchResultMap.clear();
+
+		depthOneResults.sort((a, b) => a[1] < b[1] ? 1 : -1);
+		iterativeDeepening = depthOneResults.map(x => JSON.stringify(x[0]));
+		depthOneResults = [];
+
 		depth++;
 
 		if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break; 
@@ -66,6 +70,8 @@ function FullRotateRight(game) {
 
 const SearchResultMapMaxSize = 10_000_000;
 let SearchResultMap = new Map();
+
+let depthOneResults = [];
 
 function Search(game, depth, player, currentTurn, alpha, beta) {
 	// let startGame = game.toString();
@@ -137,6 +143,10 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			// Undo the move from Game Board
 			RotateBoard(game, listOfMoves[i][1], !listOfMoves[i][2]);
 			game[listOfMoves[i][0]] = -1;
+
+			if (depth === originalDepth) {
+				depthOneResults.push([JSON.parse(JSON.stringify(listOfMoves[i])), evaluationOfMove]);
+			}
 
 			if (depth === originalDepth && evaluationOfMove > bestScore) bestIndex = listOfMoves[i];
 			bestScore = Math.max(bestScore, evaluationOfMove);
@@ -216,10 +226,15 @@ function GetEmptyIndices(game, targetColor) {
 	}
 
 	if (iterativeDeepening) {
-		emptyIndexList.sort((a,b) => {
-		 	if (a[0] !== iterativeDeepening && b[0] !== iterativeDeepening) return 0;
-			return a[0] === iterativeDeepening ? -1 : b[0] === iterativeDeepening ? 1 : 0;
+		emptyIndexList.sort((a, b) => {
+			let indexA = iterativeDeepening.indexOf(JSON.stringify(a));
+			let indexB = iterativeDeepening.indexOf(JSON.stringify(b));
+
+			if (indexA === indexB) return 0;
+			if (indexA > indexB) return 1;
+			return -1;
 		});
+		// console.log(emptyIndexList);
 
 		iterativeDeepening = null;
 	} else {

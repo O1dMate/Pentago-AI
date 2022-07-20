@@ -140,6 +140,13 @@ function setup() {
 
 	if (GAME_STR_TO_USE) GamePieces = GAME_STR_TO_USE.split(',').map(x => parseInt(x));
 
+	let time = Date.now();
+	for (let i = 0; i < 1_000_000; ++i) {
+		RotateBoard(GamePieces, i%4, true);
+	}
+	time = Date.now() - time;
+	console.log({time});
+
 	draw();
 }
 

@@ -1,4 +1,4 @@
-const { PrettyResult, QuadrantSymmetricWithPiece, RotateBoard, Evaluate, CountColorsOnRowColDiag, ScoreAfterRotation } = require('./AI_Common_Functions');
+const { PrettyResult, QuadrantSymmetricWithPiece, RotateBoard, Evaluate, CountColorsOnRowColDiag } = require('./AI_Common_Functions');
 
 let SEARCH_DEPTH;
 let PIECES = { 'EMPTY': -1, 'BLACK': 0, 'WHITE': 1 };
@@ -6,6 +6,7 @@ let PIECES = { 'EMPTY': -1, 'BLACK': 0, 'WHITE': 1 };
 let originalDepth = 1;
 let bestIndex = -1;
 let iterativeDeepening = [];
+let iterativeDeepeningHistory = [];
 let searchCalls = 0n;
 
 function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
@@ -24,7 +25,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
 	searchCalls = 0n;
 	let depth = 1;
 	let depthTime = 0;
-	// let resultMoveList;
+	let resultMoveList;
 
 	while (depth <= SEARCH_DEPTH) {
 		searchCalls = 0n;
@@ -34,8 +35,8 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
 		result = Search(GamePieces, depth, currentTurn, currentTurn, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, []);
 		depthTime = Date.now() - depthTime;
 
-		// resultMoveList = result[1];
-		// result = result[0];
+		resultMoveList = result[1];
+		result = result[0];
 
 		if (depth === 1 && result === Number.MIN_SAFE_INTEGER) {
 			console.log('AI LOST!!!');
@@ -46,10 +47,14 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
 			console.log("AI Winning Move:", PrettyResult(bestIndex));
 			break;
 		}
-		console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
-		depthOneResults.sort((a,b) => a[1] < b[1] ? 1 : -1);
-		iterativeDeepening = depthOneResults.map(x => JSON.stringify(x[0]));
 
+		resultMoveList.forEach((move, index) => {
+			if (index === resultMoveList.length - 1) iterativeDeepeningHistory.push([]);
+			iterativeDeepeningHistory[index].push(move);
+		});
+		iterativeDeepening = JSON.parse(JSON.stringify(iterativeDeepeningHistory));
+		console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
+		console.log(depthOneResults);
 		depthOneResults = [];
 		depth++;
 
@@ -61,21 +66,21 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
 
 let depthOneResults = [];
 
-function Search(game, depth, player, currentTurn, alpha, beta) {
+function Search(game, depth, player, currentTurn, alpha, beta, history) {
 	searchCalls += 1n;
 
 	let currentGameScore = Evaluate(game, player);
 
-	if (depth <= 0) return currentGameScore;
-	if (currentGameScore === Number.MAX_SAFE_INTEGER || currentGameScore === Number.MIN_SAFE_INTEGER) return currentGameScore;
+	if (depth <= 0) return [currentGameScore, history];
+	if (currentGameScore === Number.MAX_SAFE_INTEGER || currentGameScore === Number.MIN_SAFE_INTEGER) return [currentGameScore, history];
 
 	let listOfMoves = GetEmptyIndices(game, currentTurn);
 
-	if (listOfMoves.length === 0) return currentGameScore;
+	if (listOfMoves.length === 0) return [currentGameScore, history];
 
 	let nextTurn = currentTurn === PIECES.BLACK ? PIECES.WHITE : PIECES.BLACK;
 	let bestScore;
-	// let bestMoveList;
+	let bestMoveList;
 	let evaluationOfMove;
 
 	if (player === currentTurn) {
@@ -86,29 +91,31 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			game[listOfMoves[i][0]] = currentTurn;
 			RotateBoard(game, listOfMoves[i][1], listOfMoves[i][2]);
 
-			evaluationOfMove = Search(game, depth-1, player, nextTurn, alpha, beta);
-
-			// if (evaluationOfMove === Number.MAX_SAFE_INTEGER) return Number.MAX_SAFE_INTEGER;
+			evaluationOfMove = Search(game, depth-1, player, nextTurn, alpha, beta, [...history, listOfMoves[i][0]]);
 
 			// Undo the move from Game Board
 			RotateBoard(game, listOfMoves[i][1], !listOfMoves[i][2]);
 			game[listOfMoves[i][0]] = -1;
 			
 			if (depth === originalDepth) {
-				depthOneResults.push([JSON.parse(JSON.stringify(listOfMoves[i])), evaluationOfMove]);
+				depthOneResults.push([JSON.parse(JSON.stringify(listOfMoves[i])), evaluationOfMove[0]]);
 			}
 
-			if (depth === originalDepth && evaluationOfMove > bestScore) {
+			if (depth === originalDepth && evaluationOfMove[0] > bestScore) {
 				bestIndex = listOfMoves[i];
+				bestMoveList = evaluationOfMove[1];
 			}
-			bestScore = Math.max(bestScore, evaluationOfMove);
+			else if (evaluationOfMove[0] > bestScore) {
+				bestMoveList = evaluationOfMove[1];
+			}
+			bestScore = Math.max(bestScore, evaluationOfMove[0]);
 			
 			if (bestScore >= beta) break;
 			
 			alpha = Math.max(alpha, bestScore);
 		}
 
-		return bestScore;
+		return [bestScore, bestMoveList];
 	} else {
 		bestScore = Number.MAX_SAFE_INTEGER;
 
@@ -117,57 +124,75 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			game[listOfMoves[i][0]] = currentTurn;
 			RotateBoard(game, listOfMoves[i][1], listOfMoves[i][2]);
 
-			evaluationOfMove = Search(game, depth-1, player, nextTurn, alpha, beta);
+			evaluationOfMove = Search(game, depth-1, player, nextTurn, alpha, beta, [...history, listOfMoves[i][0]]);
 
 			// Undo the move from Game Board
 			RotateBoard(game, listOfMoves[i][1], !listOfMoves[i][2]);
 			game[listOfMoves[i][0]] = -1;
 
-			bestScore = Math.min(bestScore, evaluationOfMove); // Min here because we assume opponent chooses best possible move
+			if (evaluationOfMove[0] < bestScore) {
+				bestMoveList = evaluationOfMove[1]
+			}
+
+			bestScore = Math.min(bestScore, evaluationOfMove[0]); // Min here because we assume opponent chooses best possible move
 
 			if (bestScore <= alpha) break;
 			
 			beta = Math.min(beta, bestScore);
 		}
 
-		return bestScore;
+		return [bestScore, bestMoveList];
 	}
 }
 
 function GetEmptyIndices(game, targetColor) {
 	let emptyIndexList = [];
-	let indexScoreLookup = {};
 	let quadrantsChosen = 0;
-	
+	let indexScoreLookup = {};
+
 	for (let i = 0; i < game.length; ++i) {
-		if (game[i] !== PIECES.EMPTY) continue;
+		if (game[i] === PIECES.EMPTY) {
+			indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
 
-		indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
-		quadrantsChosen = 0;
-
-		for (let quadrant = 0; quadrant < 4; ++quadrant) {
-			if (!QuadrantSymmetricWithPiece(game, i, quadrant)) {
-				emptyIndexList.push([i, quadrant, false]);
-				emptyIndexList.push([i, quadrant, true]);
+			if (!QuadrantSymmetricWithPiece(game, i, 0)) {
+				emptyIndexList.push([i, 0, false]);
+				emptyIndexList.push([i, 0, true]);
 				++quadrantsChosen;
 			}
-		}
 
-		if (quadrantsChosen === 0) emptyIndexList.push([i, 0, false]);
+			if (!QuadrantSymmetricWithPiece(game, i, 1)) {
+				emptyIndexList.push([i, 1, false]);
+				emptyIndexList.push([i, 1, true]);
+				++quadrantsChosen;
+			}
+
+			if (!QuadrantSymmetricWithPiece(game, i, 2)) {
+				emptyIndexList.push([i, 2, false]);
+				emptyIndexList.push([i, 2, true]);
+				++quadrantsChosen;
+			}
+
+			if (!QuadrantSymmetricWithPiece(game, i, 3)) {
+				emptyIndexList.push([i, 3, false]);
+				emptyIndexList.push([i, 3, true]);
+				++quadrantsChosen;
+			}
+
+			if (quadrantsChosen === 0) emptyIndexList.push([i, 0, false]);
+		}
 	}
 
-	if (iterativeDeepening) {
-		emptyIndexList.sort((a,b) => {
-			let indexA = iterativeDeepening.indexOf(JSON.stringify(a));
-			let indexB = iterativeDeepening.indexOf(JSON.stringify(b));
-			
-			if (indexA === indexB) return 0;
-			if (indexA > indexB) return 1;
-			return -1;
-		});
-		// console.log(emptyIndexList);
+	if (iterativeDeepening.length > 0) {
+		let currentIterativeDeepeningMove = iterativeDeepening.shift();
 
-		iterativeDeepening = null;
+		emptyIndexList.sort((a,b) => {
+			let indexA = currentIterativeDeepeningMove.indexOf(a[0]);
+			let indexB = currentIterativeDeepeningMove.indexOf(b[0]);
+			if (indexA === -1 && indexB === -1) return -1;
+			if (indexA > indexB) return -1;
+			return 1;
+		});
+
 	} else {
 		emptyIndexList.sort((a,b) => {
 			return indexScoreLookup[a[0]] > indexScoreLookup[b[0]] ? -1 : 1;
@@ -176,6 +201,7 @@ function GetEmptyIndices(game, targetColor) {
 
 	return emptyIndexList;
 }
+
 
 // function GetEmptyIndices(game, targetColor) {
 // 	let emptyIndexList = [];
