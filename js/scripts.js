@@ -385,6 +385,6 @@ function CountRowColDiagScore(game, rowColDiagIndexList, targetColor) {
 function ScoreConsecutive(currentScore, consecutive, openStart, openEnd) {
 	if (consecutive === 2) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 2*openEndPair : openEndPair) : pairScore);
 	else if (consecutive === 3) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 2*openEndTriplet : openEndTriplet) : tripletScore);
-	else if (consecutive === 4) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? (Number.MAX_SAFE_INTEGER-1) : openEndQuad) : quadScore);
+	else if (consecutive === 4) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 100_000 : openEndQuad) : quadScore);
 	return Number.MAX_SAFE_INTEGER;
 }

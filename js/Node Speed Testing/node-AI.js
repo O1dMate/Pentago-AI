@@ -66,9 +66,14 @@ function StartConfiguration() {
 
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 
-	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,1,1,1,-1,-1,-1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '0,1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
+	GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,-1,-1,0,0,-1,0,1,1,0,1,1,0,1,0,-1,1,0,-1,1,0,0,1,-1,0,-1,1,1,0,-1,-1,0,1,1,-1,-1'.split(',').map(x => parseInt(x));
+
 	// GamePieces = '1,0,1,0,0,0,0,1,1,0,1,1,1,0,0,1,1,0,0,1,1,-1,-1,0,1,-1,0,1,0,-1,-1,0,-1,0,1,1'.split(',').map(x => parseInt(x));
-	GamePieces = '1,0,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
+	// GamePieces = '1,0,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
 
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 	/* AI as White
@@ -99,8 +104,8 @@ function draw() {
 	// console.log('\nMinimax AI (α+β pruning)');
 	// alphaBetaOnlyAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
 
-	// console.log(`\nStandard Minimax AI (no optimizations)`);
-	// standardAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	console.log(`\nStandard Minimax AI (no optimizations)`);
+	standardAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
 }
 
 StartConfiguration();

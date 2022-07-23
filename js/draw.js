@@ -96,15 +96,22 @@ function StartConfiguration() {
 		GamePieces.push(PIECES.EMPTY);
 	}
 
-	GamePieces[0] = PIECES.WHITE;
-	GamePieces[10] = PIECES.WHITE;
-	GamePieces[25] = PIECES.WHITE;
-	GamePieces[35] = PIECES.WHITE;
-	GamePieces[1] = PIECES.BLACK;
-	GamePieces[6] = PIECES.BLACK;
-	GamePieces[29] = PIECES.BLACK;
-	GamePieces[34] = PIECES.BLACK;
-	// GamePieces[5] = PIECES.BLACK;
+	// GamePieces[1] = PIECES.WHITE;
+	// GamePieces[2] = PIECES.WHITE;
+	// GamePieces[3] = PIECES.WHITE;
+	// GamePieces[7] = PIECES.BLACK;
+	// GamePieces[8] = PIECES.BLACK;
+	// GamePieces[9] = PIECES.BLACK;
+
+	// GamePieces[0] = PIECES.BLACK;
+	// GamePieces[10] = PIECES.BLACK;
+	// GamePieces[15] = PIECES.BLACK;
+	// GamePieces[25] = PIECES.BLACK;
+	// GamePieces[34] = PIECES.BLACK;
+	// GamePieces[1] = PIECES.WHITE;
+	// GamePieces[6] = PIECES.WHITE;
+	// GamePieces[29] = PIECES.WHITE;
+	// GamePieces[35] = PIECES.WHITE;
 
 	// GamePieces[4] = PIECES.BLACK;
 	// GamePieces[9] = PIECES.BLACK;
@@ -124,10 +131,22 @@ function StartConfiguration() {
 	// GamePieces[32] = PIECES.WHITE;
 
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
-	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
+	GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
 }
 
-function IsForcedMoveForPlayer(game, targetColor) {
+function IsForcedMoveForPlayer(game, move, targetColor) {
+	game[move[0]] = OTHER_PLAYER_LOOKUP[targetColor];
+	RotateBoard(game, move[1], move[2]);
+
+	let result = _IsForcedMoveForPlayer(game, targetColor);
+
+	RotateBoard(game, move[1], !move[2]);
+	game[move[0]] = -1;
+
+	return result;
+}
+
+function _IsForcedMoveForPlayer(game, targetColor) {
 	// Check for 3 in a single row (NOT only in a row), with open ends, and no opponent pieces
 	// The other player must block prevent 4 in a row with an open end or they will lose.
 	if (_ForcedMoveAuxOne(game, targetColor)) return true;

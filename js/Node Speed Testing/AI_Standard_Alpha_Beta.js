@@ -38,7 +38,7 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
 		}
 
 		if (result === Number.MAX_SAFE_INTEGER) {
-			console.log("AI Winning Move:", PrettyResult(bestIndex));
+			console.log(`Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
 			break;
 		}
 
