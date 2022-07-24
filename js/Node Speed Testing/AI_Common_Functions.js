@@ -8,7 +8,7 @@ const DIAGONAL_INDICES_FROM_INDEX = [];
 const SURROUNDING_INDICES = [];
 
 let pairScore = 2; // Score for having two in a row
-let tripletScore = 100; // Score for having three in a row
+let tripletScore = 10; // Score for having three in a row
 let quadScore = 20; // Score for having four in a row
 
 let openEndPair = 8; // Score for two in a row, but with an open end.
@@ -132,7 +132,6 @@ function RotateBoard(game, quadrant, direction) {
 	}
 }
 
-
 function Evaluate(game, targetColor) {
 	let whiteStrength = EvaluateStrength(game, PIECES.WHITE);
 	let blackStrength = EvaluateStrength(game, PIECES.BLACK);
@@ -146,26 +145,113 @@ function Evaluate(game, targetColor) {
 	return blackStrength - whiteStrength;
 }
 
+function convertRowToInt(a, b, c, d, e, f) {
+	return (a === PIECES.EMPTY ? 0 : (a === PIECES.BLACK ? 1 : 2) << 10) |
+		(b === PIECES.EMPTY ? 0 : (b === PIECES.BLACK ? 1 : 2) << 8) |
+		(c === PIECES.EMPTY ? 0 : (c === PIECES.BLACK ? 1 : 2) << 6) |
+		(d === PIECES.EMPTY ? 0 : (d === PIECES.BLACK ? 1 : 2) << 4) |
+		(e === PIECES.EMPTY ? 0 : (e === PIECES.BLACK ? 1 : 2) << 2) |
+		(f === PIECES.EMPTY ? 0 : (f === PIECES.BLACK ? 1 : 2));
+}
+
+const ROW_SCORE_LOOKUP = {
+	[PIECES.WHITE]: {
+		6: {},
+		5: {},
+	},
+	[PIECES.BLACK]: {
+		6: {},
+		5: {},
+	},
+};
+
+function GetScoreOfRow(row, targetColor) {
+	let score = 0;
+	let openStart = false;
+	let openEnd = false;
+	let consecutive = 0;
+
+	for (let i = 0; i < row.length; ++i) {
+		if (row[i] === targetColor) {
+			consecutive++;
+		} else {
+			if (row[i] === PIECES.EMPTY) openEnd = true;
+			else openEnd = false;
+
+			if (consecutive >= 2) {
+				score = ScoreConsecutive(score, consecutive, openStart, openEnd);
+			}
+
+			consecutive = 0;
+			openEnd = false;
+
+			if (row[i] === PIECES.EMPTY) openStart = true;
+			else openStart = false;
+		}
+	}
+
+	if (consecutive >= 2) {
+		score = ScoreConsecutive(score, consecutive, openStart, openEnd);
+	}
+
+	return score;
+}
+
+for (let a = -1; a <= 1; ++a) {
+	for (let b = -1; b <= 1; ++b) {
+		for (let c = -1; c <= 1; ++c) {
+			for (let d = -1; d <= 1; ++d) {
+				for (let e = -1; e <= 1; ++e) {
+					let rowInt = convertRowToInt(a, b, c, d, e, 0);
+					ROW_SCORE_LOOKUP[PIECES.WHITE][5][rowInt] = GetScoreOfRow([a, b, c, d, e], PIECES.WHITE);
+					ROW_SCORE_LOOKUP[PIECES.BLACK][5][rowInt] = GetScoreOfRow([a, b, c, d, e], PIECES.BLACK);
+
+					for (let f = -1; f <= 1; ++f) {
+						let rowInt = convertRowToInt(a, b, c, d, e, f);
+						ROW_SCORE_LOOKUP[PIECES.WHITE][6][rowInt] = GetScoreOfRow([a, b, c, d, e, f], PIECES.WHITE);
+						ROW_SCORE_LOOKUP[PIECES.BLACK][6][rowInt] = GetScoreOfRow([a, b, c, d, e, f], PIECES.BLACK);
+					}
+				}
+			}
+		}
+	}
+}
+
 function EvaluateStrength(game, targetColor) {
 	let score = 0;
 	let tempScore;
+	let rowInt = 0;
 
 	for (let i = 0; i < ROW_INDICES.length; ++i) {
-		tempScore = CountRowColDiagScore(game, ROW_INDICES[i], targetColor);
+		// tempScore = CountRowColDiagScore(game, ROW_INDICES[i], targetColor);
+
+		rowInt = convertRowToInt(game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]);
+		tempScore = ROW_SCORE_LOOKUP[targetColor][6][rowInt];
 
 		if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
 		score += tempScore;
 	}
 
 	for (let i = 0; i < COL_INDICES.length; ++i) {
-		tempScore = CountRowColDiagScore(game, COL_INDICES[i], targetColor);
+		// tempScore = CountRowColDiagScore(game, COL_INDICES[i], targetColor);
+
+		rowInt = convertRowToInt(game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]);
+		tempScore = ROW_SCORE_LOOKUP[targetColor][6][rowInt];
 
 		if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
 		score += tempScore;
 	}
 
 	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
-		tempScore = CountRowColDiagScore(game, DIAGONAL_INDICES[i], targetColor);
+		// tempScore = CountRowColDiagScore(game, DIAGONAL_INDICES[i], targetColor);
+
+		if (DIAGONAL_INDICES[i].length === 6) {
+			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]);
+			tempScore = ROW_SCORE_LOOKUP[targetColor][6][rowInt];
+		} else {
+			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], 0);
+			tempScore = ROW_SCORE_LOOKUP[targetColor][5][rowInt];
+		}
 
 		if (tempScore === Number.MAX_SAFE_INTEGER) return tempScore;
 		score += tempScore;

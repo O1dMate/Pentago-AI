@@ -15,18 +15,8 @@ let TURN = {
 	AI_COLOR: PIECES.WHITE,
 };
 
-let SEARCH_DEPTH = 4;
+let SEARCH_DEPTH = 8;
 // ******************** UPDATABLE OPTIONS ********************
-
-let pairScore = 2; // Score for having two in a row
-let tripletScore = 100; // Score for having three in a row
-let quadScore = 20; // Score for having four in a row
-
-let openEndPair = 8; // Score for two in a row, but with an open end.
-let openEndTriplet = 20; // Score for three in a row, but with an open end.
-let openEndQuad = 80; // Score for four in a row, but with an open end.
-
-const SCORES = {pairScore,tripletScore,quadScore,openEndPair,openEndTriplet,openEndQuad};
 
 // Track what piece is in location
 let GamePieces = [];
@@ -69,7 +59,11 @@ function StartConfiguration() {
 	// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 	// GamePieces = '-1,1,1,1,-1,-1,-1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 	// GamePieces = '0,1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
-	GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
+
+	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
+	GamePieces = '1,0,1,0,0,-1,0,1,1,0,1,1,-1,1,0,0,1,0,-1,1,0,0,1,-1,0,0,1,1,0,-1,-1,0,1,1,-1,-1'.split(',').map(x => parseInt(x)); // Same game as above, with only 8 moves left. Should be a draw
+	// GamePieces = '0,1,-1,0,0,-1,1,1,0,0,1,1,1,0,1,0,1,0,1,1,0,0,1,-1,0,0,1,1,0,-1,1,0,1,1,-1,-1'.split(',').map(x => parseInt(x)); // Same game as above, with only 6 moves left. Should be a draw
+
 	// GamePieces = '-1,-1,-1,0,0,-1,0,1,1,0,1,1,0,1,0,-1,1,0,-1,1,0,0,1,-1,0,-1,1,1,0,-1,-1,0,1,1,-1,-1'.split(',').map(x => parseInt(x));
 
 	// GamePieces = '1,0,1,0,0,0,0,1,1,0,1,1,1,0,0,1,1,0,0,1,1,-1,-1,0,1,-1,0,1,0,-1,-1,0,-1,0,1,1'.split(',').map(x => parseInt(x));
@@ -93,19 +87,19 @@ function StartConfiguration() {
 function draw() {
 	// Transposition Table only seems useful in the early stages of the game. In the Endgame, the board isn't almost certain not symmetric so the Transposition table doesn't help much.
 	// console.log('\nMinimax AI (α+β pruning + MO + ID + Transposition Lookup 10M)');
-	// abMoIdTranspositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	// abMoIdTranspositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 
 	// console.log('\nMinimax AI (α+β pruning + MO + Iterative Deepening)');
-	// abMoIterativeDeepeningAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	// abMoIterativeDeepeningAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 	
 	console.log('\nMinimax AI (α+β pruning + Move Ordering)');
-	abMoveOrderingAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	abMoveOrderingAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 	
 	// console.log('\nMinimax AI (α+β pruning)');
-	// alphaBetaOnlyAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	// alphaBetaOnlyAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 
-	console.log(`\nStandard Minimax AI (no optimizations)`);
-	standardAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES, SCORES);
+	// console.log(`\nStandard Minimax AI (no optimizations)`);
+	// standardAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 }
 
 StartConfiguration();
