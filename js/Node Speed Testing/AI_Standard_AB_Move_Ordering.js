@@ -42,24 +42,32 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces) {
 		result = Search(GamePieces, depth, currentTurn, currentTurn, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
 		depthTime = Date.now() - depthTime;
 
-		if (depth === 1 && result === Number.MIN_SAFE_INTEGER) {
-			console.log('AI LOST!!!');
+		depthOneResults.sort((a, b) => a.score < b.score ? 1 : -1);
+		let searchCallsStr = new Intl.NumberFormat('en-AU').format(searchCalls.toString());
+
+		if (result === Number.MIN_SAFE_INTEGER) {
+			console.log(`Depth (${depth}), AI will LOSE:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 			break;
 		}
 
 		if (result === Number.MAX_SAFE_INTEGER) {
-			console.log(`Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
+			console.log(`Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
+			depthOneResults.forEach(a => console.log(a));
 			break;
 		}
 
-		console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
-		depth++;
-		depthOneResults.sort((a, b) => a.score < b.score ? 1 : -1);
-		iterativeDeepening = depthOneResults.map(x => x.move);
+		console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 		// console.log(depthOneResults);
-		// console.log(iterativeDeepening);
-		depthOneResults = [];
+		// depthOneResults.forEach(a => console.log(a));
 
+		// Store all the initial moves that will lead to a loss. These moves will not be played.
+		depthOneResults.forEach(move => {
+			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
+		});
+
+		depth++;
+		iterativeDeepening = depthOneResults.map(x => x.move);
+		depthOneResults = [];
 
 		if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break; 
 	}
@@ -68,13 +76,12 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces) {
 }
 
 let depthOneResults = [];
+let depthOneMovesToAvoid = {};
 
 function Search(game, depth, player, currentTurn, alpha, beta) {
 	searchCalls += 1n;
 
 	let currentGameScore = Evaluate(game, player);
-	// console.log({currentGameScore});
-	// process.exit(123);
 
 	if (depth <= 0 || currentGameScore === Number.MAX_SAFE_INTEGER || currentGameScore === Number.MIN_SAFE_INTEGER) return currentGameScore;
 
@@ -86,6 +93,12 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 
 	if (player === currentTurn) {
 		let bestScore = Number.MIN_SAFE_INTEGER;
+
+		// If we are at the first move, and we know that the move will lead to a loss, don't explore at the move at all.
+		if (depth === originalDepth) {
+			// Remove all the moves that we know will lead to a loss.
+			listOfMoves = listOfMoves.filter(move => !depthOneMovesToAvoid.hasOwnProperty(JSON.stringify(move)));
+		}
 
 		for (let i = 0; i < listOfMoves.length; ++i) {
 			// Modify the Game Board with the move
@@ -101,16 +114,15 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 			if (depth === originalDepth) {
 				depthOneResults.push({
 					move: JSON.stringify(listOfMoves[i]),
-					score: evaluationOfMove,
-					board: ConvertGameArrayToBigInt(game),
+					score: evaluationOfMove
 				});
 			}
 
 			if (depth === originalDepth && evaluationOfMove > bestScore) bestIndex = listOfMoves[i];
 			bestScore = Math.max(bestScore, evaluationOfMove);
 
+			// α+β pruning
 			if (bestScore >= beta) break;
-
 			alpha = Math.max(alpha, bestScore);
 		}
 
@@ -131,8 +143,8 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 
 			bestScore = Math.min(bestScore, evaluationOfMove); // Min here because we assume opponent chooses best possible move
 
+			// α+β pruning
 			if (bestScore <= alpha) break;
-
 			beta = Math.min(beta, bestScore);
 		}
 
@@ -147,26 +159,16 @@ function GetEmptyIndices(game, targetColor) {
 	let badDefendMovesList = [];
 	let badAttackMovesList = [];
 
-	// let quadrantsChosen = 0;
 	let indexScoreLookup = {};
 	let defendMoveScoreLookup = {};
 	let attackMoveScoreLookup = {};
 
 	// Check if the current player is being forced to make a move (we don't know where though).
-	// let isPlayerForcedToMove = IsForcedMoveForPlayer(game, targetColor);
-
 	let isPlayerForcedToBlockWin = ForcedMoveToPreventWin(game, targetColor);
 	let isPlayerForcedToStopFourInARow = ForcedMoveToStopFourInARowWithOpenEnds(game, targetColor);
 	let isPlayerCurrentlyAboutToForceFourInARow = ForcedMoveToStopFourInARowWithOpenEnds(game, OTHER_PLAYER_LOOKUP[targetColor]);
 
-	// console.log({ isPlayerForcedToBlockWin, isPlayerForcedToStopFourInARow, isPlayerCurrentlyAboutToForceFourInARow });
-
-	// for (let i = 0; i < 8; ++i) {
-	// 	Evaluate(game, targetColor);
-	// }
-
 	let rotationScores = [];
-	// let rotationScoreLookup = {};
 
 	let originalScore = Evaluate(game, targetColor);
 	let evalScore = 0;
@@ -192,10 +194,10 @@ function GetEmptyIndices(game, targetColor) {
 	for (let i = 0; i < game.length; ++i) {
 		if (game[i] !== PIECES.EMPTY) continue;
 		indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
-
+		
 		game[i] = targetColor;
 		let arrayToUse;
-
+		
 		// Check if we need to defend
 		if (isPlayerForcedToBlockWin || (isPlayerForcedToStopFourInARow && !isPlayerCurrentlyAboutToForceFourInARow)) {
 			// Check if placing a piece in this empty cell will stop the forced move.
@@ -210,10 +212,6 @@ function GetEmptyIndices(game, targetColor) {
 				}
 			} else {
 				arrayToUse = emptyIndexList;
-			}
-
-			for (let rs = 0; rs < rotationScores.length; ++rs) {
-				arrayToUse.push([i, rotationScores[rs][0]%4, rotationScores[rs][0]>3]);
 			}
 		} else if (isPlayerCurrentlyAboutToForceFourInARow) {
 			// Check if the move will create an Attack (forced move) for the opponent
@@ -230,10 +228,6 @@ function GetEmptyIndices(game, targetColor) {
 				// No Forced Moved created
 				arrayToUse = emptyIndexList;
 			}
-
-			for (let rs = 0; rs < rotationScores.length; ++rs) {
-				arrayToUse.push([i, rotationScores[rs][0] % 4, rotationScores[rs][0] > 3]);
-			}
 		} else {
 			// Check if the move will create an Attack (forced move) for the opponent
 			if (ForcedMoveToStopFourInARowWithOpenEnds(game, OTHER_PLAYER_LOOKUP[targetColor])) {
@@ -249,10 +243,9 @@ function GetEmptyIndices(game, targetColor) {
 				// No Forced Moved created
 				arrayToUse = emptyIndexList;
 			}
-
-			for (let rs = 0; rs < rotationScores.length; ++rs) {
-				arrayToUse.push([i, rotationScores[rs][0] % 4, rotationScores[rs][0] > 3]);
-			}
+		}
+		for (let rs = 0; rs < rotationScores.length; ++rs) {
+			arrayToUse.push([i, rotationScores[rs][0] % 4, rotationScores[rs][0] > 3]);
 		}
 		game[i] = PIECES.EMPTY;
 	}
@@ -301,145 +294,12 @@ function GetEmptyIndices(game, targetColor) {
 
 	// }
 
-	let newList = [...defendMoveList, ...attackMoveList, ...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
+	// if (defendMoveList.length > 0) return [...defendMoveList, ...attackMoveList, ...emptyIndexList];
+	// else if (attackMoveList.length > 0) return [...attackMoveList, ...emptyIndexList];
+	// else return [...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
 
+	let newList = [...defendMoveList, ...attackMoveList, ...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
 	return newList;
 }
-
-// function GetEmptyIndices(game, targetColor) {
-// 	let emptyIndexList = [];
-// 	// let quadrantsChosen = 0;
-// 	let indexScoreLookup = {};
-
-// 	let rotationScores = [];
-// 	// let rotationScoreLookup = {};
-
-// 	// Determine which rotation is likely to be best
-// 	for (let i = 0; i < 8; ++i) {
-// 		RotateBoard(game, i%4, (i>3));
-// 		rotationScores.push([i, Evaluate(game, targetColor)]);
-// 		// rotationScoreLookup[i] = Evaluate(game, targetColor);
-// 		RotateBoard(game, i%4, !(i>3));
-// 	}
-
-
-// 	rotationScores.sort((a,b) => a[1] > b[1] ? -1 : 1);
-// 	// console.log(rotationScores.map(x => [
-// 	// 	[x[0]%4, x[0]>3], x[1]
-// 	// ]));
-// 	// console.log(rotationScoreLookup);
-
-// 	for (let i = 0; i < game.length; ++i) {
-// 		if (game[i] !== PIECES.EMPTY) continue;
-
-// 		indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
-
-// 		emptyIndexList.push([i, rotationScores[0][0]%4, rotationScores[0][0]>3]);
-// 		emptyIndexList.push([i, rotationScores[1][0]%4, rotationScores[1][0]>3]);
-// 		emptyIndexList.push([i, rotationScores[2][0]%4, rotationScores[2][0]>3]);
-// 		emptyIndexList.push([i, rotationScores[3][0]%4, rotationScores[3][0]>3]);
-// 		emptyIndexList.push([i, rotationScores[4][0]%4, rotationScores[4][0]>3]);
-// 		emptyIndexList.push([i, rotationScores[5][0]%4, rotationScores[5][0]>3]);
-// 		emptyIndexList.push([i, rotationScores[6][0]%4, rotationScores[6][0]>3]);
-// 		emptyIndexList.push([i, rotationScores[7][0]%4, rotationScores[7][0]>3]);
-
-// 		// emptyIndexList.push([i, 0, true]);
-// 		// emptyIndexList.push([i, 0, false]);
-// 		// emptyIndexList.push([i, 1, true]);
-// 		// emptyIndexList.push([i, 1, false]);
-// 		// emptyIndexList.push([i, 2, true]);
-// 		// emptyIndexList.push([i, 2, false]);
-// 		// emptyIndexList.push([i, 3, true]);
-// 		// emptyIndexList.push([i, 3, false]);
-
-// 		// if (!QuadrantSymmetricWithPiece(game, i, 0)) {
-// 		// 	emptyIndexList.push([i, 0, true]);
-// 		// 	emptyIndexList.push([i, 0, false]);
-// 		// 	++quadrantsChosen;
-// 		// }
-
-// 		// if (!QuadrantSymmetricWithPiece(game, i, 1)) {
-// 		// 	emptyIndexList.push([i, 1, false]);
-// 		// 	emptyIndexList.push([i, 1, true]);
-// 		// 	++quadrantsChosen;
-// 		// }
-
-// 		// if (!QuadrantSymmetricWithPiece(game, i, 2)) {
-// 		// 	emptyIndexList.push([i, 2, false]);
-// 		// 	emptyIndexList.push([i, 2, true]);
-// 		// 	++quadrantsChosen;
-// 		// }
-
-// 		// if (!QuadrantSymmetricWithPiece(game, i, 3)) {
-// 		// 	emptyIndexList.push([i, 3, false]);
-// 		// 	emptyIndexList.push([i, 3, true]);
-// 		// 	++quadrantsChosen;
-// 		// }
-
-// 		// if (quadrantsChosen === 0) emptyIndexList.push([i, 0, false]);
-// 	}
-
-// 	emptyIndexList.sort((a, b) => {
-// 		if (a[0] === b[0]) return 0;
-
-// 		return indexScoreLookup[a[0]] > indexScoreLookup[b[0]] ? -1 : 1;
-// 	});
-
-// 	// emptyIndexList.sort((a, b) => {
-// 	// 	if (a[0] !== b[0]) return 0;		
-// 	// 	return rotationScoreLookup[a[1] + (a[2] ? 4 : 0)] > rotationScoreLookup[b[1] + (b[2] ? 4 : 0)] ? -1 : 1;
-// 	// });
-
-// 	// console.log(emptyIndexList);
-// 	// process.exit(1);
-
-// 	return emptyIndexList;
-// }
-
-// function GetEmptyIndices(game, targetColor) {
-// 	let emptyIndexList = [];
-// 	let quadrantsChosen = 0;
-// 	let indexScoreLookup = {};
-
-// 	for (let i = 0; i < game.length; ++i) {
-// 		if (game[i] !== PIECES.EMPTY) continue;
-// 		// game[i] = targetColor;
-// 		indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
-// 		// indexScoreLookup[i] = Evaluate(game, targetColor);
-// 		// game[i] = PIECES.EMPTY;
-
-// 		if (!QuadrantSymmetricWithPiece(game, i, 0)) {
-// 			emptyIndexList.push([i, 0, true]);
-// 			emptyIndexList.push([i, 0, false]);
-// 			++quadrantsChosen;
-// 		}
-
-// 		if (!QuadrantSymmetricWithPiece(game, i, 1)) {
-// 			emptyIndexList.push([i, 1, false]);
-// 			emptyIndexList.push([i, 1, true]);
-// 			++quadrantsChosen;
-// 		}
-
-// 		if (!QuadrantSymmetricWithPiece(game, i, 2)) {
-// 			emptyIndexList.push([i, 2, false]);
-// 			emptyIndexList.push([i, 2, true]);
-// 			++quadrantsChosen;
-// 		}
-
-// 		if (!QuadrantSymmetricWithPiece(game, i, 3)) {
-// 			emptyIndexList.push([i, 3, false]);
-// 			emptyIndexList.push([i, 3, true]);
-// 			++quadrantsChosen;
-// 		}
-
-// 		if (quadrantsChosen === 0) emptyIndexList.push([i, 0, false]);
-// 	}
-
-// 	emptyIndexList.sort((a, b) => {
-// 		return indexScoreLookup[a[0]] > indexScoreLookup[b[0]] ? -1 : 1;
-// 	});
-
-// 	return emptyIndexList;
-// }
 
 module.exports = SearchAux;

@@ -25,17 +25,19 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces) {
 		result = Search(GamePieces, depth, currentTurn, currentTurn, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
 		depthTime = Date.now() - depthTime;
 
-		if (depth === 1 && result === Number.MIN_SAFE_INTEGER) {
-			console.log('AI LOST!!!');
+		let searchCallsStr = new Intl.NumberFormat('en-AU').format(searchCalls.toString());
+
+		if (result === Number.MIN_SAFE_INTEGER) {
+			console.log(`Depth (${depth}), AI will LOSE:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 			break;
 		}
 
 		if (result === Number.MAX_SAFE_INTEGER) {
-			console.log(`Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
+			console.log(`Depth (${depth}), Winning Move:`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 			break;
 		}
 
-		console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCalls})`, `msTime (${depthTime})`);
+		console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 		depth++;
 
 		if (depth > GamePieces.filter(x => x === PIECES.EMPTY).length) break; 

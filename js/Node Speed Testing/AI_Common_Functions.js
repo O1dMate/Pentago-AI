@@ -197,6 +197,279 @@ function GetScoreOfRow(row, targetColor) {
 	return score;
 }
 
+function GetScoreOfRowV2(row, targetColor) {
+	// Check for 3 in a single row (NOT only in a row), with open ends, and no opponent pieces
+	// The other player must block prevent 4 in a row with an open end or they will lose.
+	// let playerIsForcedToPreventFour = ForcedMoveToStopFourInARowWithOpenEnds(row, targetColor);
+	
+	if (CheckForWin(row, targetColor)) return Number.MAX_SAFE_INTEGER;
+	else if (CheckForWin(row, OTHER_PLAYER_LOOKUP[targetColor])) return Number.MIN_SAFE_INTEGER;
+
+	let isPlayerAboutToLose = CheckForFourInARowWithOpenEnds(row, OTHER_PLAYER_LOOKUP[targetColor]);
+	let isPlayerForcedToBlockWin = _ForcedMoveCheckFourInARowAboutToBeFiveV2(row, targetColor);
+	let isPlayerForcedToStopFourInARow = _ForcedMoveCheckThreeInARowOpenEndNoOpponentV2(row, targetColor);
+	
+	let isPlayerAboutToWin = CheckForFourInARowWithOpenEnds(row, targetColor);
+	let isPlayerCurrentlyAboutToForcePreventWin = _ForcedMoveCheckFourInARowAboutToBeFiveV2(row, OTHER_PLAYER_LOOKUP[targetColor]);
+	let isPlayerCurrentlyAboutToForceFourInARow = _ForcedMoveCheckThreeInARowOpenEndNoOpponentV2(row, OTHER_PLAYER_LOOKUP[targetColor]);
+
+	// console.log({ isPlayerAboutToLose, isPlayerForcedToBlockWin, isPlayerForcedToStopFourInARow });
+	// console.log({ isPlayerAboutToWin, isPlayerCurrentlyAboutToForcePreventWin, isPlayerCurrentlyAboutToForceFourInARow });
+
+	if (isPlayerAboutToLose) return -100_000;
+	if (isPlayerForcedToBlockWin) return -1_000;
+	if (isPlayerForcedToStopFourInARow) return -100;
+	
+	if (isPlayerAboutToWin) return 100_000;
+	if (isPlayerCurrentlyAboutToForcePreventWin) return 1_000;
+	if (isPlayerCurrentlyAboutToForceFourInARow) return 100;
+
+	let playerCount = row.filter(cell => cell === targetColor).length;
+	let opponentCount = row.filter(cell => cell === OTHER_PLAYER_LOOKUP[targetColor]).length;
+
+	return playerCount-opponentCount;
+
+	// Check for 4 in a single row (NOT only in a row), with an empty spot in the middle that will make 5 in a row.
+	// This check all detects 4 in a row with either an open end or both open ends.
+	// The other player must block this empty spot or they will lose.
+	// if (ForcedMoveToPreventWin(game, targetColor)) return true;
+}
+
+function CheckForFourInARowWithOpenEnds(row, targetColor) {
+	if (row.length === 5) return false;
+
+	// If the two ends aren't empty, then this won't lead to 4 in a row with open ends.
+	if (row[0] !== PIECES.EMPTY) return false;
+	if (row[5] !== PIECES.EMPTY) return false;
+
+	for (let i = 1; i < row.length-1; ++i) {
+		if (row[i] !== targetColor) return false;
+	}
+
+	return true;
+}
+
+// Check for 3 in a single row (NOT only in a row), with open ends, and no opponent pieces
+// The other player must block prevent 4 in a row with an open end or they will lose.
+function _ForcedMoveCheckThreeInARowOpenEndNoOpponentV2(row, targetColor) {
+	// If the row is only length 5, this isn't a concern. Even if the three in a row have open ends, adding an extra one will remove the open end. Only rows of size 6 can lead to 4 in a row with open ends.
+	// if (row.length === 5) return false;
+
+	if (row.length === 6) {
+		if (row[0] === PIECES.EMPTY && row[5] === PIECES.EMPTY) {
+			let numberOfEmpties = 0;
+
+			for (let i = 1; i < row.length - 1; ++i) {
+				if (row[i] === targetColor) return false;
+
+				if (row[i] === PIECES.EMPTY) numberOfEmpties++;
+
+				if (numberOfEmpties > 1) return false;
+			}
+
+			return true;
+		} else if (row[0] === PIECES.EMPTY && row[4] === PIECES.EMPTY) {
+			for (let i = 1; i < row.length - 2; ++i) {
+				if (row[i] === targetColor || row[i] === PIECES.EMPTY) return false;
+			}
+
+			return true;
+		} else if (row[1] === PIECES.EMPTY && row[5] === PIECES.EMPTY) {
+			for (let i = 2; i < row.length - 1; ++i) {
+				if (row[i] === targetColor || row[i] === PIECES.EMPTY) return false;
+			}
+
+			return true;
+		}
+	}
+
+
+	// If the two ends aren't empty, then this won't lead to 4 in a row with open ends.
+	if (row[0] !== PIECES.EMPTY) return false;
+	if (row[5] !== PIECES.EMPTY) return false;
+
+	let numberOfEmpties = 0;
+
+	for (let i = 1; i < row.length-1; ++i) {
+		if (row[i] === targetColor) return false;
+
+		if (row[i] === PIECES.EMPTY) numberOfEmpties++;
+
+		if (numberOfEmpties > 1) return false;
+	}
+
+	return true;
+}
+
+function _ForcedMoveCheckFourInARowAboutToBeFiveV2(row, targetColor) {
+	let emptyCount = 0;
+	let targetColorCount = 0;
+
+	if (row.length === 6) {
+		for (let i = 0; i < row.length-1; ++i) {
+			if (row[i] === targetColor) break;
+			else if (row[i] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+
+		emptyCount = 0;
+		targetColorCount = 0;
+
+		for (let i = 1; i < row.length; ++i) {
+			if (row[i] === targetColor) break;
+			else if (row[i] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+	} else {
+		for (let i = 0; i < row.length; ++i) {
+			if (row[i] === targetColor) return false;
+			else if (row[i] === PIECES.EMPTY) emptyCount++;
+			else targetColorCount++;
+		}
+
+		if (emptyCount === 1 && targetColorCount === 4) return true;
+	}
+
+	return false;
+}
+
+function GetScoreOfRowV3(row, targetColor) {
+	let E = PIECES.EMPTY.toString();
+	let C = targetColor.toString();
+	let O = OTHER_PLAYER_LOOKUP[targetColor].toString();
+
+	let playerFiveInARow = C+C+C+C+C;
+	let opponentFiveInARow = O+O+O+O+O;
+
+	let playerFourInARow = [
+		E + C + C + C + C,
+		C + E + C + C + C,
+		C + C + E + C + C,
+		C + C + C + E + C,
+		C + C + C + C + E,
+	];
+
+	let opponentFourInARow = [
+		E + O + O + O + O,
+		O + E + O + O + O,
+		O + O + E + O + O,
+		O + O + O + E + O,
+		O + O + O + O + E,
+	];
+
+	let playerThreeInARow = [
+		E + E + C + C + C,
+		E + C + E + C + C,
+		E + C + C + E + C,
+		E + C + C + C + E,
+
+		C + E + E + C + C,
+		C + E + C + E + C,
+		C + E + C + C + E,
+
+		C + C + E + E + C,
+		C + C + E + C + E,
+
+		C + C + C + E + E,
+	];
+
+	let opponentThreeInARow = [
+		E + E + O + O + O,
+		E + O + E + O + O,
+		E + O + O + E + O,
+		E + O + O + O + E,
+
+		O + E + E + O + O,
+		O + E + O + E + O,
+		O + E + O + O + E,
+
+		O + O + E + E + O,
+		O + O + E + O + E,
+
+		O + O + O + E + E,
+	];
+
+	let stringsToCheck = [];
+
+	if (row.length === 6) {
+		stringsToCheck.push(row.slice(0,5).join(''));
+		stringsToCheck.push(row.slice(1,6).join(''));
+
+		// Check for 4 in a row with open ends.
+		let fullRowStr = row.join('');
+
+		if (fullRowStr === (E+C+C+C+C+E)) return 100_000;
+		if (fullRowStr === (E+O+O+O+O+E)) return -100_000;
+	} else {
+		stringsToCheck.push(row.join(''));
+	}
+
+	for (let i = 0; i < stringsToCheck.length; ++i) {
+		if (stringsToCheck[i] === playerFiveInARow) return Number.MAX_SAFE_INTEGER;
+		if (stringsToCheck[i] === opponentFiveInARow) return Number.MIN_SAFE_INTEGER;
+	}
+
+	for (let i = 0; i < stringsToCheck.length; ++i) {
+		for (let a = 0; a < playerFourInARow.length; ++a) {
+			if (stringsToCheck[i] === playerFourInARow[a]) return 1000;
+			if (stringsToCheck[i] === opponentFourInARow[a]) return -1000;
+		}
+	}
+
+	for (let i = 0; i < stringsToCheck.length; ++i) {
+		for (let a = 0; a < playerThreeInARow.length; ++a) {
+			if (stringsToCheck[i] === playerThreeInARow[a]) return 100;
+			if (stringsToCheck[i] === opponentThreeInARow[a]) return -100;
+		}
+	}
+
+	for (let i = 0; i < stringsToCheck.length; ++i) {
+		if (stringsToCheck[i].includes(C + C + C) && stringsToCheck[i].includes(O + O + O)) return 0;
+		if (stringsToCheck[i].includes(C + C + C)) return 50;
+		if (stringsToCheck[i].includes(O + O + O)) return -50;
+	}
+
+	return 0;
+}
+
+// let player = 1;
+// let testGame = [-1,1,1,-1,1,1];
+// let result = GetScoreOfRowV3Aux(testGame, player);
+// console.log({testGame, result, player});
+// process.exit(123);
+
+function CheckForWin(row, targetColor) {
+	let consecutive = 0;
+
+	for (let i = 0; i < row.length; ++i) {
+		if (row[i] === targetColor) {
+			consecutive++;
+		} else {
+			if (consecutive >= 5) return true;
+
+			consecutive = 0;
+		}
+	}
+
+	if (consecutive >= 5) return true;
+	return false;
+}
+
+const FORCE_MOVE_LOOKUP = {
+	[PIECES.WHITE]: {
+		6: {},
+		5: {},
+	},
+	[PIECES.BLACK]: {
+		6: {},
+		5: {},
+	},
+};
+
 for (let a = -1; a <= 1; ++a) {
 	for (let b = -1; b <= 1; ++b) {
 		for (let c = -1; c <= 1; ++c) {
@@ -205,11 +478,28 @@ for (let a = -1; a <= 1; ++a) {
 					let rowInt = convertRowToInt(a, b, c, d, e, 0);
 					ROW_SCORE_LOOKUP[PIECES.WHITE][5][rowInt] = GetScoreOfRow([a, b, c, d, e], PIECES.WHITE);
 					ROW_SCORE_LOOKUP[PIECES.BLACK][5][rowInt] = GetScoreOfRow([a, b, c, d, e], PIECES.BLACK);
+					// console.log([a, b, c, d, e], PIECES.WHITE, ROW_SCORE_LOOKUP[PIECES.WHITE][5][rowInt]);
+					
+					if (GetScoreOfRowV3([a, b, c, d, e], PIECES.WHITE) > 50 || GetScoreOfRowV3([a, b, c, d, e], PIECES.WHITE) < -50) {
+						FORCE_MOVE_LOOKUP[PIECES.WHITE][5][rowInt] = true;
+					}
+					if (GetScoreOfRowV3([a, b, c, d, e], PIECES.BLACK) > 50 || GetScoreOfRowV3([a, b, c, d, e], PIECES.BLACK) < -50) {
+						FORCE_MOVE_LOOKUP[PIECES.BLACK][5][rowInt] = true;
+					}
 
 					for (let f = -1; f <= 1; ++f) {
 						let rowInt = convertRowToInt(a, b, c, d, e, f);
 						ROW_SCORE_LOOKUP[PIECES.WHITE][6][rowInt] = GetScoreOfRow([a, b, c, d, e, f], PIECES.WHITE);
 						ROW_SCORE_LOOKUP[PIECES.BLACK][6][rowInt] = GetScoreOfRow([a, b, c, d, e, f], PIECES.BLACK);
+						// console.log([a, b, c, d, e, f].map(x => x === PIECES.EMPTY ? 'E' : x === PIECES.WHITE ? 'W': 'B').join(''), PIECES.WHITE, ROW_SCORE_LOOKUP[PIECES.WHITE][6][rowInt]);
+
+						if (GetScoreOfRowV3([a, b, c, d, e, f], PIECES.WHITE) > 50 || GetScoreOfRowV3([a, b, c, d, e, f], PIECES.WHITE) < -50) {
+							FORCE_MOVE_LOOKUP[PIECES.WHITE][6][rowInt] = true;
+							// console.log([a, b, c, d, e, f].map(x => x === PIECES.EMPTY ? 'E' : x === PIECES.WHITE ? 'W' : 'B').join(''), PIECES.WHITE);
+						}
+						if (GetScoreOfRowV3([a, b, c, d, e, f], PIECES.BLACK) > 50 || GetScoreOfRowV3([a, b, c, d, e, f], PIECES.BLACK) < -50) {
+							FORCE_MOVE_LOOKUP[PIECES.BLACK][6][rowInt] = true;
+						}
 					}
 				}
 			}
@@ -217,14 +507,14 @@ for (let a = -1; a <= 1; ++a) {
 	}
 }
 
+// console.log(FORCE_MOVE_LOOKUP);
+
 function EvaluateStrength(game, targetColor) {
 	let score = 0;
 	let tempScore;
 	let rowInt = 0;
 
 	for (let i = 0; i < ROW_INDICES.length; ++i) {
-		// tempScore = CountRowColDiagScore(game, ROW_INDICES[i], targetColor);
-
 		rowInt = convertRowToInt(game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]);
 		tempScore = ROW_SCORE_LOOKUP[targetColor][6][rowInt];
 
@@ -233,8 +523,6 @@ function EvaluateStrength(game, targetColor) {
 	}
 
 	for (let i = 0; i < COL_INDICES.length; ++i) {
-		// tempScore = CountRowColDiagScore(game, COL_INDICES[i], targetColor);
-
 		rowInt = convertRowToInt(game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]);
 		tempScore = ROW_SCORE_LOOKUP[targetColor][6][rowInt];
 
@@ -243,8 +531,6 @@ function EvaluateStrength(game, targetColor) {
 	}
 
 	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
-		// tempScore = CountRowColDiagScore(game, DIAGONAL_INDICES[i], targetColor);
-
 		if (DIAGONAL_INDICES[i].length === 6) {
 			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]);
 			tempScore = ROW_SCORE_LOOKUP[targetColor][6][rowInt];
@@ -288,38 +574,6 @@ function CountColorsOnRowColDiag(game, index, targetColor) {
 	return count;
 }
 
-function CountRowColDiagScore(game, rowColDiagIndexList, targetColor) {
-	let score = 0;
-	let openStart = false;
-	let openEnd = false;
-	let consecutive = 0;
-
-	for (let i = 0; i < rowColDiagIndexList.length; ++i) {
-		if (game[rowColDiagIndexList[i]] === targetColor) {
-			consecutive++;
-		} else {
-			if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) openEnd = true;
-			else openEnd = false;
-
-			if (consecutive >= 2) {
-				score = ScoreConsecutive(score, consecutive, openStart, openEnd);
-			}
-
-			consecutive = 0;
-			openEnd = false;
-
-			if (game[rowColDiagIndexList[i]] === PIECES.EMPTY) openStart = true;
-			else openStart = false;
-		}
-	}
-
-	if (consecutive >= 2) {
-		score = ScoreConsecutive(score, consecutive, openStart, openEnd);
-	}
-
-	return score;
-}
-
 function ScoreConsecutive(currentScore, consecutive, openStart, openEnd) {
 	if (consecutive === 2) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 2 * openEndPair : openEndPair) : pairScore);
 	else if (consecutive === 3) return currentScore + ((openStart || openEnd) ? ((openStart && openEnd) ? 2 * openEndTriplet : openEndTriplet) : tripletScore);
@@ -338,83 +592,6 @@ function CountColorsOnRowColDiagV2(game, move, targetColor) {
 
 	return result;
 }
-
-// function ScoreAfterRotation(game, move, targetColor) {
-// 	RotateBoard(game, move[0], move[1]);
-// 	let result = Evaluate(game, targetColor);
-// 	RotateBoard(game, move[0], !move[1]);
-
-// 	return result;
-// }
-
-// function IsForcedMoveForPlayer(game, move, opponentColor) {
-// 	// console.log(move, EvaluateStrength(game, opponentColor), game.toString());
-// 	game[move[0]] = OTHER_PLAYER_LOOKUP[opponentColor];
-// 	RotateBoard(game, move[1], move[2]);
-// 	// console.log(move, EvaluateStrength(game, opponentColor), game.toString());
-
-// 	let score = 0;
-	
-// 	// If the game is lost after the move, don't check if it forces the opponent to block.
-// 	if (EvaluateStrength(game, opponentColor) === Number.MAX_SAFE_INTEGER) score = Number.MIN_SAFE_INTEGER;
-// 	else {
-// 		let oppCanWin = false;
-// 		let tempScore = 0;
-
-// 		// Can opponent Win next move
-// 		for (let dir = 0; dir < 2; ++dir) {
-// 			if (oppCanWin) break;
-
-// 			for (let quad = 0; quad < 4; ++quad) {
-				
-// 				// console.log(move, quad, dir, EvaluateStrength(game, opponentColor));
-				
-// 				RotateBoard(game, quad, !!dir);
-// 				tempScore = EvaluateStrength(game, opponentColor);
-// 				RotateBoard(game, quad, !!!dir);
-
-// 				if (tempScore === Number.MAX_SAFE_INTEGER) {
-// 					oppCanWin = true;
-// 					break;
-// 				}
-// 			}
-// 		}
-
-// 		// console.log(move, { oppCanWin });
-
-// 		if (oppCanWin) score = Number.MIN_SAFE_INTEGER;
-// 		else if (ForcedMoveToPreventWin(game, OTHER_PLAYER_LOOKUP[opponentColor])) score = -1000;
-// 		else if (ForcedMoveToPreventWin(game, opponentColor)) score = 1000;
-// 		else if (ForcedMoveToStopFourInARowWithOpenEnds(game, OTHER_PLAYER_LOOKUP[opponentColor])) score = -100;
-// 		else if (ForcedMoveToStopFourInARowWithOpenEnds(game, opponentColor)) score = 100;
-// 	}
-
-// 	RotateBoard(game, move[1], !move[2]);
-// 	game[move[0]] = -1;
-
-// 	return score;
-// }
-
-// function IsForcedMoveForPlayer(game, move, targetColor) {
-// 	game[move[0]] = OTHER_PLAYER_LOOKUP[targetColor];
-// 	RotateBoard(game, move[1], move[2]);
-
-// 	let result;
-
-// 	// If the game is lost after the move, don't check if it forces the opponent to block.
-// 	console.log(move, Evaluate(game, targetColor));
-
-// 	if (Evaluate(game, targetColor) === Number.MAX_SAFE_INTEGER) result = false;
-// 	else {
-// 		if (ForcedMoveToPreventWin(game, OTHER_PLAYER_LOOKUP[targetColor])) result = false;
-// 		else result = _IsForcedMoveForPlayer(game, targetColor);
-// 	}
-
-// 	RotateBoard(game, move[1], !move[2]);
-// 	game[move[0]] = -1;
-
-// 	return result;
-// }
 
 function IsForcedMoveForPlayer(game, targetColor) {
 	// Check for 3 in a single row (NOT only in a row), with open ends, and no opponent pieces
@@ -522,4 +699,4 @@ function _ForcedMoveCheckFourInARowAboutToBeFive(game, rowColDiagIndexList, targ
 }
 
 module.exports = {
-	PrettyResult, QuadrantSymmetricWithPiece, RotateBoard, Evaluate, EvaluateStrength, CountColorsOnRowColDiag, CountColorsOnRowColDiagV2, CountRowColDiagScore, ScoreConsecutive, IsForcedMoveForPlayer, ForcedMoveToStopFourInARowWithOpenEnds, ForcedMoveToPreventWin };
+	PrettyResult, QuadrantSymmetricWithPiece, RotateBoard, Evaluate, EvaluateStrength, CountColorsOnRowColDiag, CountColorsOnRowColDiagV2, ScoreConsecutive, IsForcedMoveForPlayer, ForcedMoveToStopFourInARowWithOpenEnds, ForcedMoveToPreventWin };

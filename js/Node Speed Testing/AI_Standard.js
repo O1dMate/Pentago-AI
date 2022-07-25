@@ -7,16 +7,9 @@ let originalDepth = 1;
 let bestIndex = -1;
 let searchCalls = 0n;
 
-function SearchAux(gameStr, searchDepth, currentTurn, pieces, scores) {
+function SearchAux(gameStr, searchDepth, currentTurn, pieces) {
 	SEARCH_DEPTH = searchDepth;
 	PIECES = pieces;
-
-	pairScore = scores.pairScore;
-	tripletScore = scores.tripletScore;
-	quadScore = scores.quadScore;
-	openEndPair = scores.openEndPair;
-	openEndTriplet = scores.openEndTriplet;
-	openEndQuad = scores.openEndQuad;
 	
 	let GamePieces = gameStr.split(',').map(x => parseInt(x));
 
