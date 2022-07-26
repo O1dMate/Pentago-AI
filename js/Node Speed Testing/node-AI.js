@@ -12,7 +12,7 @@ let OTHER_PLAYER_LOOKUP = { [PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES
 let TURN = {
 	PLAYER: 0,
 	AI: 1,
-	AI_COLOR: PIECES.WHITE, // The color we are playing as (i.e. who is making the current move)
+	AI_COLOR: PIECES.BLACK, // The color we are playing as (i.e. who is making the current move)
 };
 TURN.PLAYER_COLOR = OTHER_PLAYER_LOOKUP[TURN.AI_COLOR];
 
@@ -61,10 +61,10 @@ function StartConfiguration() {
 	// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 	
 	// 3 in a row for each player on separate rows. 
-	// GamePieces = '-1,1,1,1,-1,-1,-1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	GamePieces = '-1,1,1,1,-1,-1,-1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 
 	// BLACK is about to get 4 in a row with open ends through middle diagonal. WHITE must defend or lose.
-	GamePieces = '0,1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
+	// GamePieces = '0,1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
 
 	// Good Example Game (Pretty sure this will end in a draw). Play as WHITE.
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));

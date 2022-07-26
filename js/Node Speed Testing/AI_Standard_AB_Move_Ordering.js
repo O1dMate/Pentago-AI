@@ -179,9 +179,17 @@ function GetEmptyIndices(game, targetColor) {
 
 		// Only include the rotation if it doesn't make the player lose, or get into a losing position (4 in a row with open ends)
 		evalScore = Evaluate(game, targetColor);
-		if (evalScore > -10000) rotationScores.push([i, evalScore]);
+		if (evalScore > originalScore) rotationScores.push([i, evalScore]);
 
 		RotateBoard(game, i % 4, !(i > 3));
+	}
+
+	if (rotationScores.length === 0) {
+		for (let i = 0; i < 8; ++i) {
+			RotateBoard(game, i % 4, (i > 3));
+			rotationScores.push([i, Evaluate(game, targetColor)]);
+			RotateBoard(game, i % 4, !(i > 3));
+		}
 	}
 
 	rotationScores.sort((a, b) => a[1] > b[1] ? -1 : 1);
