@@ -1,6 +1,7 @@
 const standardAi = require('./AI_Standard');
 const alphaBetaOnlyAi = require('./AI_Standard_Alpha_Beta');
 const abMoveOrderingAi = require('./AI_Standard_AB_Move_Ordering');
+const abMoveOrderingKHAi = require('./AI_Standard_AB_Move_OrderingKH');
 const abMoIterativeDeepeningAi = require('./AI_Standard_AB_MO_Iterative_Deepening');
 const abMoIdTranspositionLookupAi = require('./AI_Standard_AB_MO_ID_Transposition_Lookup');
 
@@ -11,11 +12,11 @@ let OTHER_PLAYER_LOOKUP = { [PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES
 let TURN = {
 	PLAYER: 0,
 	AI: 1,
-	AI_COLOR: PIECES.BLACK, // The color we are playing as (i.e. who is making the current move)
+	AI_COLOR: PIECES.WHITE, // The color we are playing as (i.e. who is making the current move)
 };
 TURN.PLAYER_COLOR = OTHER_PLAYER_LOOKUP[TURN.AI_COLOR];
 
-let SEARCH_DEPTH = 6;
+let SEARCH_DEPTH = 4;
 // ******************** UPDATABLE OPTIONS ********************
 
 // Track what piece is in location
@@ -56,9 +57,14 @@ function StartConfiguration() {
 
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 
+	// 2 in a row for each player on separate rows. 
 	// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	
+	// 3 in a row for each player on separate rows. 
 	// GamePieces = '-1,1,1,1,-1,-1,-1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
-	// GamePieces = '0,1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
+
+	// BLACK is about to get 4 in a row with open ends through middle diagonal. WHITE must defend or lose.
+	GamePieces = '0,1,-1,-1,-1,-1,1,-1,-1,-1,0,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,1,-1,-1,-1,-1,0,1'.split(',').map(x => parseInt(x));
 
 	// Good Example Game (Pretty sure this will end in a draw). Play as WHITE.
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,-1,0,0,0,-1,0,1,1,0,1,-1,1,-1,0,1,0,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
@@ -96,7 +102,7 @@ function StartConfiguration() {
 	Depth (4), Score (-192) [ 1, 'Q3', 'Right' ] Calls (114709) msTime (322)
 	*/
 	// GamePieces = '-1,1,1,1,-1,-1,-1,-1,-1,-1,1,-1,-1,-1,-1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
-	GamePieces = '-1,-1,-1,1,-1,0,-1,-1,-1,-1,1,-1,1,1,1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x)); // As Black should lose in 8 (maybe)
+	// GamePieces = '-1,-1,-1,1,-1,0,-1,-1,-1,-1,1,-1,1,1,1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x)); // As Black should lose in 8 (maybe)
 	// GamePieces = '1,-1,-1,1,0,0,1,-1,-1,-1,1,-1,1,-1,-1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x)); // As White should win in 7 (maybe)
 	// GamePieces = '-1,-1,-1,1,0,0,-1,-1,-1,-1,1,1,1,1,1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x)); // As Black, Loss is certain in 6 moves
 }
@@ -115,15 +121,18 @@ function draw() {
 	// console.log('\nMinimax AI (α+β pruning + MO + ID + Transposition Lookup 10M)');
 	// abMoIdTranspositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 
-	
 	console.log('\nMinimax AI (α+β pruning + Move Ordering)');
 	abMoveOrderingAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
-
-	console.log('\nMinimax AI (α+β pruning + MO + Iterative Deepening)');
-	abMoIterativeDeepeningAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 	
-	console.log('\nMinimax AI (α+β pruning)');
-	alphaBetaOnlyAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
+	console.log('\nMinimax AI (α+β pruning + Move Ordering (New))');
+	abMoveOrderingKHAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
+
+
+	// console.log('\nMinimax AI (α+β pruning + MO + Iterative Deepening)');
+	// abMoIterativeDeepeningAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
+	
+	// console.log('\nMinimax AI (α+β pruning)');
+	// alphaBetaOnlyAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 
 	// console.log(`\nStandard Minimax AI (no optimizations)`);
 	// standardAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);

@@ -1,4 +1,4 @@
-const { PrettyResult, RotateBoard, Evaluate, CountColorsOnRowColDiag, IsForcedMoveForPlayer, ForcedMoveToStopFourInARowWithOpenEnds, ForcedMoveToPreventWin } = require('./AI_Common_Functions');
+const { PrettyResult, RotateBoard, Evaluate, CountColorsOnRowColDiag, IsForcedMoveForPlayer, ForcedMoveToStopFourInARowWithOpenEnds, ForcedMoveToPreventWin, NewIsForcedMoveForPlayer, NewIsForcedToPreventWin, NewIsForcedToPreventFourInARow } = require('./AI_Common_Functions');
 
 let SEARCH_DEPTH;
 let PIECES = { 'EMPTY': -1, 'BLACK': 0, 'WHITE': 1 };
@@ -59,6 +59,8 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces) {
 		console.log(`Depth (${depth}), Score (${result})`, PrettyResult(bestIndex), `Calls (${searchCallsStr})`, `msTime (${depthTime})`);
 		// console.log(depthOneResults);
 		// depthOneResults.forEach(a => console.log(a));
+
+		// console.log(depthTwoResults);
 
 		// Store all the initial moves that will lead to a loss. These moves will not be played.
 		depthOneResults.forEach(move => {
@@ -154,19 +156,27 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 
 function GetEmptyIndices(game, targetColor) {
 	let emptyIndexList = [];
-	let defendMoveList = [];
+
 	let attackMoveList = [];
-	let badDefendMovesList = [];
 	let badAttackMovesList = [];
+
+	let defendMoveList = [];
+	let badDefendMovesList = [];
 
 	let indexScoreLookup = {};
 	let defendMoveScoreLookup = {};
 	let attackMoveScoreLookup = {};
 
 	// Check if the current player is being forced to make a move (we don't know where though).
-	let isPlayerForcedToBlockWin = ForcedMoveToPreventWin(game, targetColor);
-	let isPlayerForcedToStopFourInARow = ForcedMoveToStopFourInARowWithOpenEnds(game, targetColor);
-	let isPlayerCurrentlyAboutToForceFourInARow = ForcedMoveToStopFourInARowWithOpenEnds(game, OTHER_PLAYER_LOOKUP[targetColor]);
+	let opponentHasFourInARow = NewIsForcedToPreventWin(game, targetColor);
+	let opponentHasThreeInARow = NewIsForcedToPreventFourInARow(game, targetColor);
+	let playerHasFourInARow = NewIsForcedToPreventWin(game, OTHER_PLAYER_LOOKUP[targetColor]);
+	let playerHasThreeInARow = NewIsForcedToPreventFourInARow(game, OTHER_PLAYER_LOOKUP[targetColor]);
+
+	// console.log();
+	// console.log({ opponentHasFourInARow, opponentHasThreeInARow });
+	// console.log({ playerHasFourInARow, playerHasThreeInARow });
+	// console.log();
 
 	let rotationScores = [];
 
@@ -185,11 +195,6 @@ function GetEmptyIndices(game, targetColor) {
 	}
 
 	rotationScores.sort((a, b) => a[1] > b[1] ? -1 : 1);
-	// console.log(rotationScores.map(x => [
-	// 	[x[0]%4, x[0]>3], x[1]
-	// ]));
-	// console.log(rotationScoreLookup);
-
 
 	for (let i = 0; i < game.length; ++i) {
 		if (game[i] !== PIECES.EMPTY) continue;
@@ -198,56 +203,44 @@ function GetEmptyIndices(game, targetColor) {
 		game[i] = targetColor;
 		let arrayToUse;
 
-		// Check if we need to defend
-		if (isPlayerForcedToBlockWin || (isPlayerForcedToStopFourInARow && !isPlayerCurrentlyAboutToForceFourInARow)) {
-			// Check if placing a piece in this empty cell will stop the forced move.
-			if (!IsForcedMoveForPlayer(game, targetColor)) {
-				// The move was the forced move
+		// Check if we need to Defend
+		if ((opponentHasFourInARow && !playerHasFourInARow) || (opponentHasThreeInARow && !playerHasThreeInARow)) {
+			// Check if this move prevents the Attack
+			if (!NewIsForcedMoveForPlayer(game, targetColor)) {
 				defendMoveScoreLookup[i] = Evaluate(game, targetColor) - originalScore;
-
-				if (defendMoveScoreLookup[i] < 0) {
-					arrayToUse = badDefendMovesList;
-				} else {
-					arrayToUse = defendMoveList;
-				}
+				arrayToUse = defendMoveList;
 			} else {
-				arrayToUse = emptyIndexList;
+				// The move didn't stop the opponents Attack.
+				arrayToUse = badDefendMovesList;
 			}
-		} else if (isPlayerCurrentlyAboutToForceFourInARow) {
-			// Check if the move will create an Attack (forced move) for the opponent
-			if (ForcedMoveToPreventWin(game, OTHER_PLAYER_LOOKUP[targetColor])) {
-				// Forced Moved created
-				attackMoveScoreLookup[i] = Evaluate(game, targetColor) - originalScore;
+		} else if (playerHasFourInARow || playerHasThreeInARow) {
+			// Check if the move continues the Attack
 
-				if (attackMoveScoreLookup[i] < 0) {
-					arrayToUse = badAttackMovesList;
-				} else {
-					arrayToUse = attackMoveList;
-				}
+			if (NewIsForcedToPreventWin(game, OTHER_PLAYER_LOOKUP[targetColor])) {
+				attackMoveScoreLookup[i] = Evaluate(game, targetColor) - originalScore;
+				arrayToUse = attackMoveList;
 			} else {
-				// No Forced Moved created
-				arrayToUse = emptyIndexList;
+				// The Move didn't further the attack (3 in-a-row to 4, 4 in-a-row to win).
+				arrayToUse = badAttackMovesList;
 			}
 		} else {
-			// Check if the move will create an Attack (forced move) for the opponent
-			if (ForcedMoveToStopFourInARowWithOpenEnds(game, OTHER_PLAYER_LOOKUP[targetColor])) {
-				// Forced Moved created
+			// Check if the move will create an Attack
+			if (NewIsForcedToPreventFourInARow(game, OTHER_PLAYER_LOOKUP[targetColor])) {
 				attackMoveScoreLookup[i] = Evaluate(game, targetColor) - originalScore;
-
-				if (attackMoveScoreLookup[i] < 0) {
-					arrayToUse = badAttackMovesList;
-				} else {
-					arrayToUse = attackMoveList;
-				}
+				arrayToUse = attackMoveList;
 			} else {
-				// No Forced Moved created
+				// No Forced Moved created (doesn't mean it's a bad move, since it might not be possible)
 				arrayToUse = emptyIndexList;
 			}
 		}
+
 		for (let rs = 0; rs < rotationScores.length; ++rs) {
 			arrayToUse.push([i, rotationScores[rs][0] % 4, rotationScores[rs][0] > 3]);
 		}
+
 		game[i] = PIECES.EMPTY;
+
+		// if (arrayToUse === emptyIndexList) indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
 	}
 
 	// Sort Normal Moves
@@ -282,13 +275,17 @@ function GetEmptyIndices(game, targetColor) {
 
 
 	// console.log('attackMoveList', attackMoveList);
-	// console.log('defendMoveList', defendMoveList);
 	// console.log('badAttackMovesList', badAttackMovesList);
+
+	// console.log('defendMoveList', defendMoveList);
 	// console.log('badDefendMovesList', badDefendMovesList);
+	
 	// console.log('emptyIndexList', emptyIndexList);
+
 	// console.log('attackMoveScoreLookup', attackMoveScoreLookup);
 	// console.log('defendMoveScoreLookup', defendMoveScoreLookup);
 	// process.exit(0);
+	
 
 	// if (badDefendMovesList.length > 0 || badAttackMovesList.length > 0) {
 
@@ -298,7 +295,8 @@ function GetEmptyIndices(game, targetColor) {
 	// else if (attackMoveList.length > 0) return [...attackMoveList, ...emptyIndexList];
 	// else return [...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
 
-	let newList = [...defendMoveList, ...attackMoveList, ...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
+	let newList = [...defendMoveList,...attackMoveList,...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
+	// console.log(newList);
 	return newList;
 }
 

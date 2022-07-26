@@ -437,8 +437,8 @@ function GetScoreOfRowV3(row, targetColor) {
 }
 
 // let player = 1;
-// let testGame = [-1,1,1,-1,1,1];
-// let result = GetScoreOfRowV3Aux(testGame, player);
+// let testGame = [1,1,1,-1,-1,0];
+// let result = GetScoreOfRowV3(testGame, player);
 // console.log({testGame, result, player});
 // process.exit(123);
 
@@ -459,16 +459,9 @@ function CheckForWin(row, targetColor) {
 	return false;
 }
 
-const FORCE_MOVE_LOOKUP = {
-	[PIECES.WHITE]: {
-		6: {},
-		5: {},
-	},
-	[PIECES.BLACK]: {
-		6: {},
-		5: {},
-	},
-};
+const FORCED_LOSS = { [PIECES.WHITE]: {5: {}, 6: {}}, [PIECES.BLACK]: {5: {}, 6: {}} };
+const FORCED_PREVENT_FIVE_IN_A_ROW = { [PIECES.WHITE]: {5: {}, 6: {}}, [PIECES.BLACK]: {5: {}, 6: {}} };
+const FORCED_PREVENT_FOUR_IN_A_ROW = { [PIECES.WHITE]: {5: {}, 6: {}}, [PIECES.BLACK]: {5: {}, 6: {}} };
 
 for (let a = -1; a <= 1; ++a) {
 	for (let b = -1; b <= 1; ++b) {
@@ -480,26 +473,34 @@ for (let a = -1; a <= 1; ++a) {
 					ROW_SCORE_LOOKUP[PIECES.BLACK][5][rowInt] = GetScoreOfRow([a, b, c, d, e], PIECES.BLACK);
 					// console.log([a, b, c, d, e], PIECES.WHITE, ROW_SCORE_LOOKUP[PIECES.WHITE][5][rowInt]);
 					
-					if (GetScoreOfRowV3([a, b, c, d, e], PIECES.WHITE) > 50 || GetScoreOfRowV3([a, b, c, d, e], PIECES.WHITE) < -50) {
-						FORCE_MOVE_LOOKUP[PIECES.WHITE][5][rowInt] = true;
-					}
-					if (GetScoreOfRowV3([a, b, c, d, e], PIECES.BLACK) > 50 || GetScoreOfRowV3([a, b, c, d, e], PIECES.BLACK) < -50) {
-						FORCE_MOVE_LOOKUP[PIECES.BLACK][5][rowInt] = true;
-					}
+					let whiteForcedMoveScore = GetScoreOfRowV3([a, b, c, d, e], PIECES.WHITE);
+
+					if (whiteForcedMoveScore === Number.MIN_SAFE_INTEGER) FORCED_LOSS[PIECES.WHITE][5][rowInt] = [a,b,c,d,e];
+					if (whiteForcedMoveScore === -100_000) FORCED_PREVENT_FIVE_IN_A_ROW[PIECES.WHITE][5][rowInt] = true;
+					if (whiteForcedMoveScore === -1_000) FORCED_PREVENT_FIVE_IN_A_ROW[PIECES.WHITE][5][rowInt] = true;
+					if (whiteForcedMoveScore === -100) FORCED_PREVENT_FOUR_IN_A_ROW[PIECES.WHITE][5][rowInt] = true;
+					
+					if (whiteForcedMoveScore === Number.MAX_SAFE_INTEGER) FORCED_LOSS[PIECES.BLACK][5][rowInt] = [a, b, c, d, e];
+					if (whiteForcedMoveScore === 100_000) FORCED_PREVENT_FIVE_IN_A_ROW[PIECES.BLACK][5][rowInt] = true;
+					if (whiteForcedMoveScore === 1_000) FORCED_PREVENT_FIVE_IN_A_ROW[PIECES.BLACK][5][rowInt] = true;
+					if (whiteForcedMoveScore === 100) FORCED_PREVENT_FOUR_IN_A_ROW[PIECES.BLACK][5][rowInt] = true;
 
 					for (let f = -1; f <= 1; ++f) {
 						let rowInt = convertRowToInt(a, b, c, d, e, f);
 						ROW_SCORE_LOOKUP[PIECES.WHITE][6][rowInt] = GetScoreOfRow([a, b, c, d, e, f], PIECES.WHITE);
 						ROW_SCORE_LOOKUP[PIECES.BLACK][6][rowInt] = GetScoreOfRow([a, b, c, d, e, f], PIECES.BLACK);
-						// console.log([a, b, c, d, e, f].map(x => x === PIECES.EMPTY ? 'E' : x === PIECES.WHITE ? 'W': 'B').join(''), PIECES.WHITE, ROW_SCORE_LOOKUP[PIECES.WHITE][6][rowInt]);
 
-						if (GetScoreOfRowV3([a, b, c, d, e, f], PIECES.WHITE) > 50 || GetScoreOfRowV3([a, b, c, d, e, f], PIECES.WHITE) < -50) {
-							FORCE_MOVE_LOOKUP[PIECES.WHITE][6][rowInt] = true;
-							// console.log([a, b, c, d, e, f].map(x => x === PIECES.EMPTY ? 'E' : x === PIECES.WHITE ? 'W' : 'B').join(''), PIECES.WHITE);
-						}
-						if (GetScoreOfRowV3([a, b, c, d, e, f], PIECES.BLACK) > 50 || GetScoreOfRowV3([a, b, c, d, e, f], PIECES.BLACK) < -50) {
-							FORCE_MOVE_LOOKUP[PIECES.BLACK][6][rowInt] = true;
-						}
+						let whiteForcedMoveScore = GetScoreOfRowV3([a, b, c, d, e, f], PIECES.WHITE);
+
+						if (whiteForcedMoveScore === Number.MIN_SAFE_INTEGER) FORCED_LOSS[PIECES.WHITE][6][rowInt] = [a, b, c, d, e, f];
+						if (whiteForcedMoveScore === -100_000) FORCED_PREVENT_FIVE_IN_A_ROW[PIECES.WHITE][6][rowInt] = true;
+						if (whiteForcedMoveScore === -1_000) FORCED_PREVENT_FIVE_IN_A_ROW[PIECES.WHITE][6][rowInt] = true;
+						if (whiteForcedMoveScore === -100) FORCED_PREVENT_FOUR_IN_A_ROW[PIECES.WHITE][6][rowInt] = true;
+
+						if (whiteForcedMoveScore === Number.MAX_SAFE_INTEGER) FORCED_LOSS[PIECES.BLACK][6][rowInt] = [a, b, c, d, e, f];
+						if (whiteForcedMoveScore === 100_000) FORCED_PREVENT_FIVE_IN_A_ROW[PIECES.BLACK][6][rowInt] = true;
+						if (whiteForcedMoveScore === 1_000) FORCED_PREVENT_FIVE_IN_A_ROW[PIECES.BLACK][6][rowInt] = true;
+						if (whiteForcedMoveScore === 100) FORCED_PREVENT_FOUR_IN_A_ROW[PIECES.BLACK][6][rowInt] = true;
 					}
 				}
 			}
@@ -507,7 +508,103 @@ for (let a = -1; a <= 1; ++a) {
 	}
 }
 
-// console.log(FORCE_MOVE_LOOKUP);
+// 2 in a row for each player on separate rows. 
+// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+
+// 3 in a row for each player on separate rows. 
+// let TestGamePieces = '-1,1,1,1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+
+function NewIsForcedMoveForPlayer(game, targetColor) {
+	let rowInt = 0;
+
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		rowInt = convertRowToInt(game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]);
+
+		if (FORCED_PREVENT_FOUR_IN_A_ROW[targetColor][6][rowInt]) return true;
+		if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
+		if (FORCED_LOSS[targetColor][6][rowInt]) return true;
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		rowInt = convertRowToInt(game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]);
+		
+		if (FORCED_PREVENT_FOUR_IN_A_ROW[targetColor][6][rowInt]) return true;
+		if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
+		if (FORCED_LOSS[targetColor][6][rowInt]) return true;
+	}
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (DIAGONAL_INDICES[i].length === 6) {
+			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]);
+			if (FORCED_PREVENT_FOUR_IN_A_ROW[targetColor][6][rowInt]) return true;
+			if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
+			if (FORCED_LOSS[targetColor][6][rowInt]) return true;
+		} else {
+			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], 0);
+			if (FORCED_PREVENT_FOUR_IN_A_ROW[targetColor][5][rowInt]) return true;
+			if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][5][rowInt]) return true;
+			if (FORCED_LOSS[targetColor][5][rowInt]) return true;
+		}
+	}
+
+	return false;
+}
+
+function NewIsForcedToPreventWin(game, targetColor) {
+	let rowInt = 0;
+
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		rowInt = convertRowToInt(game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]);
+
+		if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		rowInt = convertRowToInt(game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]);
+
+		if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
+	}
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (DIAGONAL_INDICES[i].length === 6) {
+			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]);
+			if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
+		} else {
+			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], 0);
+			if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][5][rowInt]) return true;
+		}
+	}
+
+	return false;
+}
+
+function NewIsForcedToPreventFourInARow(game, targetColor) {
+	let rowInt = 0;
+
+	for (let i = 0; i < ROW_INDICES.length; ++i) {
+		rowInt = convertRowToInt(game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]);
+
+		if (FORCED_PREVENT_FOUR_IN_A_ROW[targetColor][6][rowInt]) return true;
+	}
+
+	for (let i = 0; i < COL_INDICES.length; ++i) {
+		rowInt = convertRowToInt(game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]);
+
+		if (FORCED_PREVENT_FOUR_IN_A_ROW[targetColor][6][rowInt]) return true;
+	}
+
+	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
+		if (DIAGONAL_INDICES[i].length === 6) {
+			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]);
+			if (FORCED_PREVENT_FOUR_IN_A_ROW[targetColor][6][rowInt]) return true;
+		} else {
+			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], 0);
+			if (FORCED_PREVENT_FOUR_IN_A_ROW[targetColor][5][rowInt]) return true;
+		}
+	}
+
+	return false;
+}
 
 function EvaluateStrength(game, targetColor) {
 	let score = 0;
@@ -699,4 +796,18 @@ function _ForcedMoveCheckFourInARowAboutToBeFive(game, rowColDiagIndexList, targ
 }
 
 module.exports = {
-	PrettyResult, QuadrantSymmetricWithPiece, RotateBoard, Evaluate, EvaluateStrength, CountColorsOnRowColDiag, CountColorsOnRowColDiagV2, ScoreConsecutive, IsForcedMoveForPlayer, ForcedMoveToStopFourInARowWithOpenEnds, ForcedMoveToPreventWin };
+	PrettyResult,
+	QuadrantSymmetricWithPiece,
+	RotateBoard,
+	Evaluate,
+	EvaluateStrength,
+	NewIsForcedMoveForPlayer,
+	NewIsForcedToPreventWin,
+	NewIsForcedToPreventFourInARow,
+	CountColorsOnRowColDiag,
+	CountColorsOnRowColDiagV2,
+	ScoreConsecutive,
+	IsForcedMoveForPlayer,
+	ForcedMoveToStopFourInARowWithOpenEnds,
+	ForcedMoveToPreventWin
+};

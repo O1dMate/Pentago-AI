@@ -134,7 +134,12 @@ function StartConfiguration() {
 	// GamePieces[32] = PIECES.WHITE;
 
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
-	GamePieces = '1,-1,-1,1,0,0,1,-1,-1,-1,1,-1,1,-1,-1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	
+	// 2 in a row for each player on separate rows. 
+	// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	
+	// 3 in a row for each player on separate rows. 
+	GamePieces = '-1,1,1,1,-1,-1,-1,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 }
 
 function IsForcedMoveForPlayer(game, move, targetColor) {
