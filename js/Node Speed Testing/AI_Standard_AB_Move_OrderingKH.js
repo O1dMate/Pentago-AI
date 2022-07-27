@@ -1,4 +1,4 @@
-const { PrettyResult, RotateBoard, Evaluate, CountColorsOnRowColDiag, IsForcedMoveForPlayer, ForcedMoveToStopFourInARowWithOpenEnds, ForcedMoveToPreventWin, NewIsForcedMoveForPlayer, NewIsForcedToPreventWin, NewIsForcedToPreventFourInARow } = require('./AI_Common_Functions');
+const { PrettyResult, RotateBoard, Evaluate, CountColorsOnRowColDiag, IsForcedMoveForPlayer, ForcedMoveToStopFourInARowWithOpenEnds, ForcedMoveToPreventWin } = require('./AI_Common_Functions');
 
 let SEARCH_DEPTH;
 let PIECES = { 'EMPTY': -1, 'BLACK': 0, 'WHITE': 1 };
@@ -60,8 +60,6 @@ function SearchAux(gameStr, searchDepth, currentTurn, pieces) {
 		// console.log(depthOneResults);
 		// depthOneResults.forEach(a => console.log(a));
 
-		// console.log(depthTwoResults);
-
 		// Store all the initial moves that will lead to a loss. These moves will not be played.
 		depthOneResults.forEach(move => {
 			if (move.score === Number.MIN_SAFE_INTEGER) depthOneMovesToAvoid[move.move] = true;
@@ -81,7 +79,6 @@ let depthOneResults = [];
 let depthOneMovesToAvoid = {};
 
 function Search(game, depth, player, currentTurn, alpha, beta) {
-
 	searchCalls += 1n;
 
 	let currentGameScore = Evaluate(game, player);
@@ -157,27 +154,19 @@ function Search(game, depth, player, currentTurn, alpha, beta) {
 
 function GetEmptyIndices(game, targetColor) {
 	let emptyIndexList = [];
-
-	let attackMoveList = [];
-	let badAttackMovesList = [];
-
 	let defendMoveList = [];
+	let attackMoveList = [];
 	let badDefendMovesList = [];
+	let badAttackMovesList = [];
 
 	let indexScoreLookup = {};
 	let defendMoveScoreLookup = {};
 	let attackMoveScoreLookup = {};
 
 	// Check if the current player is being forced to make a move (we don't know where though).
-	let opponentHasFourInARow = NewIsForcedToPreventWin(game, targetColor);
-	let opponentHasThreeInARow = NewIsForcedToPreventFourInARow(game, targetColor);
-	let playerHasFourInARow = NewIsForcedToPreventWin(game, OTHER_PLAYER_LOOKUP[targetColor]);
-	let playerHasThreeInARow = NewIsForcedToPreventFourInARow(game, OTHER_PLAYER_LOOKUP[targetColor]);
-
-	// console.log();
-	// console.log({ opponentHasFourInARow, opponentHasThreeInARow });
-	// console.log({ playerHasFourInARow, playerHasThreeInARow });
-	// console.log();
+	let isPlayerForcedToBlockWin = ForcedMoveToPreventWin(game, targetColor);
+	let isPlayerForcedToStopFourInARow = ForcedMoveToStopFourInARowWithOpenEnds(game, targetColor);
+	let isPlayerCurrentlyAboutToForceFourInARow = ForcedMoveToStopFourInARowWithOpenEnds(game, OTHER_PLAYER_LOOKUP[targetColor]);
 
 	// let rotationScores = [];
 
@@ -190,155 +179,125 @@ function GetEmptyIndices(game, targetColor) {
 
 	// 	// Only include the rotation if it doesn't make the player lose, or get into a losing position (4 in a row with open ends)
 	// 	evalScore = Evaluate(game, targetColor);
-	// 	if (evalScore > -10000) rotationScores.push([i, evalScore]);
+	// 	// if (evalScore - originalScore > 50) rotationScores.push([i, evalScore]);
+	// 	rotationScores.push([i, evalScore]);
+	// 	// if (evalScore - originalScore > 50) rotationScores.push([i, evalScore]);
+	// 	// if (evalScore > originalScore) rotationScores.push([i, evalScore]);
 
 	// 	RotateBoard(game, i % 4, !(i > 3));
 	// }
 
+	// if (rotationScores.length === 0) {
+	// 	for (let i = 0; i < 8; ++i) {
+	// 		RotateBoard(game, i % 4, (i > 3));
+	// 		rotationScores.push([i, Evaluate(game, targetColor)]);
+	// 		RotateBoard(game, i % 4, !(i > 3));
+	// 	}
+	// }
+
 	// rotationScores.sort((a, b) => a[1] > b[1] ? -1 : 1);
 
-	// let startBoard = game.toString();
-	let foundWin = false;
-	
 	for (let i = 0; i < game.length; ++i) {
 		if (game[i] !== PIECES.EMPTY) continue;
 
-		game[i] = targetColor;
-
-		for (let rotationDir = 0; rotationDir < 8; ++rotationDir) {
-			RotateBoard(game, rotationDir % 4, (rotationDir > 3));
-			
+		for (let rot = 0; rot < 8; rot++) {
 			indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
-	
-			let moveString = JSON.stringify([i, rotationDir % 4, (rotationDir > 3)]);
 			
+			game[i] = targetColor;
+			RotateBoard(game, rot % 4, (rot > 3));
 			let arrayToUse;
 	
-			// Check if we need to Defend
-			if ((opponentHasFourInARow && !playerHasFourInARow) || (opponentHasThreeInARow && !playerHasThreeInARow)) {
-				// Check if this move prevents the Attack
-				if (!NewIsForcedMoveForPlayer(game, targetColor)) {
-					defendMoveScoreLookup[moveString] = Evaluate(game, targetColor) - originalScore;
-					
-					if (defendMoveScoreLookup[moveString] > 1_000_000) foundWin = [i, rotationDir % 4, (rotationDir > 3)];
-					arrayToUse = defendMoveList;
+			// Check if we need to defend
+			if (isPlayerForcedToBlockWin || (isPlayerForcedToStopFourInARow && !isPlayerCurrentlyAboutToForceFourInARow)) {
+				// Check if placing a piece in this empty cell will stop the forced move.
+				if (!IsForcedMoveForPlayer(game, targetColor)) {
+					// The move was the forced move
+					defendMoveScoreLookup[i] = Evaluate(game, targetColor) - originalScore;
+	
+					if (defendMoveScoreLookup[i] < 0) {
+						arrayToUse = badDefendMovesList;
+					} else {
+						arrayToUse = defendMoveList;
+					}
 				} else {
-					// The move didn't stop the opponents Attack.
-					arrayToUse = badDefendMovesList;
+					arrayToUse = emptyIndexList;
 				}
-			} else if (playerHasFourInARow || playerHasThreeInARow) {
-				// Check if the move continues the Attack
-				if (NewIsForcedToPreventWin(game, OTHER_PLAYER_LOOKUP[targetColor])) {
-					attackMoveScoreLookup[moveString] = Evaluate(game, targetColor) - originalScore;
-
-					if (attackMoveScoreLookup[moveString] > 1_000_000) foundWin = [i, rotationDir % 4, (rotationDir > 3)];
-					arrayToUse = attackMoveList;
+			} else if (isPlayerCurrentlyAboutToForceFourInARow) {
+				// Check if the move will create an Attack (forced move) for the opponent
+				if (ForcedMoveToPreventWin(game, OTHER_PLAYER_LOOKUP[targetColor])) {
+					// Forced Moved created
+					attackMoveScoreLookup[i] = Evaluate(game, targetColor) - originalScore;
+	
+					if (attackMoveScoreLookup[i] < 0) {
+						arrayToUse = badAttackMovesList;
+					} else {
+						arrayToUse = attackMoveList;
+					}
 				} else {
-					// The Move didn't further the attack (3 in-a-row to 4, 4 in-a-row to win).
-					arrayToUse = badAttackMovesList;
+					// No Forced Moved created
+					arrayToUse = emptyIndexList;
 				}
 			} else {
-				// Check if the move will create an Attack
-				if (NewIsForcedToPreventFourInARow(game, OTHER_PLAYER_LOOKUP[targetColor])) {
-					attackMoveScoreLookup[moveString] = Evaluate(game, targetColor) - originalScore;
-
-					if (attackMoveScoreLookup[moveString] > 1_000_000) foundWin = [i, rotationDir % 4, (rotationDir > 3)];
-					arrayToUse = attackMoveList;
+				// Check if the move will create an Attack (forced move) for the opponent
+				if (ForcedMoveToStopFourInARowWithOpenEnds(game, OTHER_PLAYER_LOOKUP[targetColor])) {
+					// Forced Moved created
+					attackMoveScoreLookup[i] = Evaluate(game, targetColor) - originalScore;
+	
+					if (attackMoveScoreLookup[i] < 0) {
+						arrayToUse = badAttackMovesList;
+					} else {
+						arrayToUse = attackMoveList;
+					}
 				} else {
-					// No Forced Moved created (doesn't mean it's a bad move, since it might not be possible)
+					// No Forced Moved created
 					arrayToUse = emptyIndexList;
 				}
 			}
-
-			arrayToUse.push([i, rotationDir % 4, (rotationDir > 3)]);
-	
-			// console.log([i, rotationDir % 4, (rotationDir > 3)]);
-			// console.log(startBoard);
-			// console.log(game.toString());
-			// console.log();
-
+			arrayToUse.push([i, rot % 4, (rot > 3)]);
 			// for (let rs = 0; rs < rotationScores.length; ++rs) {
 			// 	arrayToUse.push([i, rotationScores[rs][0] % 4, rotationScores[rs][0] > 3]);
 			// }
-	
-	
-			// if (arrayToUse === emptyIndexList) indexScoreLookup[i] = CountColorsOnRowColDiag(game, i, targetColor);
-			RotateBoard(game, rotationDir % 4, !(rotationDir > 3));
+			RotateBoard(game, rot % 4, !(rot > 3));
+			game[i] = PIECES.EMPTY;
 		}
-		game[i] = PIECES.EMPTY;
 	}
 
-	if (foundWin) return [foundWin];
+	// // Sort Normal Moves
+	// emptyIndexList.sort((a, b) => {
+	// 	if (a[0] === b[0]) return 0;
+	// 	return indexScoreLookup[a[0]] > indexScoreLookup[b[0]] ? -1 : 1;
+	// });
 
-	// Sort Normal Moves
-	emptyIndexList.sort((a, b) => {
-		if (a[0] === b[0]) return 0;
-		return indexScoreLookup[a[0]] > indexScoreLookup[b[0]] ? -1 : 1;
-	});
+	// // Sort Attack Moves
+	// attackMoveList.sort((a, b) => {
+	// 	if (a[0] === b[0]) return 0;
+	// 	return attackMoveScoreLookup[a[0]] > attackMoveScoreLookup[b[0]] ? -1 : 1;
+	// });
 
-	// Sort Attack Moves
-	attackMoveList.sort((a, b) => {
-		if (a[0] === b[0]) return 0;
-		return attackMoveScoreLookup[a[0]] > attackMoveScoreLookup[b[0]] ? -1 : 1;
-	});
+	// // Sort Bad Attack Moves
+	// badAttackMovesList.sort((a, b) => {
+	// 	if (a[0] === b[0]) return 0;
+	// 	return attackMoveScoreLookup[a[0]] > attackMoveScoreLookup[b[0]] ? -1 : 1;
+	// });
 
-	// Sort Bad Attack Moves
-	badAttackMovesList.sort((a, b) => {
-		if (a[0] === b[0]) return 0;
-		return attackMoveScoreLookup[a[0]] > attackMoveScoreLookup[b[0]] ? -1 : 1;
-	});
+	// // Sort Defend Moves
+	// defendMoveList.sort((a, b) => {
+	// 	if (a[0] === b[0]) return 0;
+	// 	return defendMoveScoreLookup[a[0]] > defendMoveScoreLookup[b[0]] ? -1 : 1;
+	// });
 
-	// Sort Defend Moves
-	defendMoveList.sort((a, b) => {
-		if (a[0] === b[0]) return 0;
-		return defendMoveScoreLookup[a[0]] > defendMoveScoreLookup[b[0]] ? -1 : 1;
-	});
+	// // Sort Bad Defend Moves
+	// badDefendMovesList.sort((a, b) => {
+	// 	if (a[0] === b[0]) return 0;
+	// 	return defendMoveScoreLookup[a[0]] > defendMoveScoreLookup[b[0]] ? -1 : 1;
+	// });
 
-	// Sort Bad Defend Moves
-	badDefendMovesList.sort((a, b) => {
-		if (a[0] === b[0]) return 0;
-		return defendMoveScoreLookup[a[0]] > defendMoveScoreLookup[b[0]] ? -1 : 1;
-	});
+	if (defendMoveList.length > 0) return defendMoveList;
+	else if (attackMoveList.length > 0) return attackMoveList;
+	else return [...defendMoveList, ...attackMoveList, ...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
 
-
-	// console.log('attackMoveList', attackMoveList);
-	// console.log('badAttackMovesList', badAttackMovesList);
-
-	// console.log('defendMoveList', defendMoveList);
-	// console.log('badDefendMovesList', badDefendMovesList);
-	
-	// console.log('emptyIndexList', emptyIndexList);
-
-	// console.log('attackMoveScoreLookup', attackMoveScoreLookup);
-	// console.log('defendMoveScoreLookup', defendMoveScoreLookup);
-	// process.exit(0);
-	
-
-	// if (badDefendMovesList.length > 0 || badAttackMovesList.length > 0) {
-
-	// }
-
-	// if (defendMoveList.length > 0) return [...defendMoveList, ...attackMoveList, ...emptyIndexList];
-	// else if (attackMoveList.length > 0) return [...attackMoveList, ...emptyIndexList];
-	// else return [...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
-
-	let newList = [...defendMoveList,...attackMoveList,...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
-	
-	// if (!called) {
-	// 	called = true;
-	// 	// console.log(startBoard);
-	// 	// console.log(game.toString());
-	// 	// console.log();
-	// }
-	// else {
-	// 	// console.log(startBoard);
-	// 	// console.log(game.toString());
-	// 	// console.log(newList);
-	// 	process.exit(123);
-	// }
-	return newList;
+	// let newList = [...defendMoveList, ...attackMoveList, ...emptyIndexList, ...badAttackMovesList, ...badDefendMovesList];
+	// return newList;
 }
-
-// let called = false;
 
 module.exports = SearchAux;

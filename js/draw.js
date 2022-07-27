@@ -2,8 +2,8 @@ let PIECES = {'EMPTY': -1, 'BLACK': 0, 'WHITE': 1};
 let TURN = {
 	PLAYER: 0,
 	AI: 1,
-	PLAYER_COLOR: PIECES.BLACK,
-	AI_COLOR: PIECES.WHITE
+	PLAYER_COLOR: PIECES.WHITE,
+	AI_COLOR: PIECES.BLACK
 };
 let CURRENT_TURN = TURN.PLAYER;
 let OTHER_PLAYER_LOOKUP = {[PIECES.WHITE]: PIECES.BLACK, [PIECES.BLACK]: PIECES.WHITE};
@@ -134,12 +134,12 @@ function StartConfiguration() {
 	// GamePieces[32] = PIECES.WHITE;
 
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
-	
+
 	// 2 in a row for each player on separate rows. 
 	// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 	
 	// 3 in a row for each player on separate rows. 
-	GamePieces = '-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 }
 
 function IsForcedMoveForPlayer(game, move, targetColor) {
