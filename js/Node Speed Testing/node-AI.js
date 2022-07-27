@@ -80,7 +80,7 @@ function StartConfiguration() {
 	// GamePieces = '-1,0,0,1,1,1,-1,1,0,-1,1,0,-1,1,0,1,0,-1,-1,-1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,0,-1,1,-1,-1'.split(',').map(x => parseInt(x));
 
 	// Random Game. Play as WHITE
-	GamePieces = '-1,0,0,1,-1,1,-1,1,0,0,1,1,-1,1,0,-1,0,1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,0,0,1,-1,1,-1,1,0,0,1,1,-1,1,0,-1,0,1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 
 	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
 	/* AI as White
@@ -111,6 +111,12 @@ function StartConfiguration() {
 	// GamePieces = '-1,-1,-1,1,-1,0,-1,-1,-1,-1,1,-1,1,1,1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x)); // As Black should lose in 8 (maybe)
 	// GamePieces = '1,-1,-1,1,0,0,1,-1,-1,-1,1,-1,1,-1,-1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x)); // As White should win in 7 (maybe)
 	// GamePieces = '-1,-1,-1,1,0,0,-1,-1,-1,-1,1,1,1,1,1,0,-1,1,-1,-1,0,-1,-1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x)); // As Black, Loss is certain in 6 moves
+
+	// Game from Dil & I. White to Move (WHITE will win at depth 5).
+	GamePieces = '-1,-1,0,0,-1,1,1,1,-1,0,0,1,1,-1,0,0,-1,-1,-1,0,-1,-1,-1,-1,-1,1,-1,1,0,-1,-1,-1,-1,-1,1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '0,-1,0,0,-1,1,-1,1,-1,0,0,1,-1,1,1,0,-1,1,-1,0,-1,-1,-1,-1,-1,1,-1,1,0,-1,-1,-1,-1,-1,1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,-1,0,0,-1,1,1,1,-1,0,0,1,1,-1,0,0,-1,1,-1,0,-1,-1,-1,-1,-1,1,-1,1,0,-1,-1,-1,-1,-1,1,0'.split(',').map(x => parseInt(x));
+	// GamePieces = '0,-1,0,0,-1,1,-1,1,-1,0,0,1,-1,1,1,0,-1,1,-1,0,1,-1,-1,-1,-1,1,-1,1,0,-1,-1,-1,-1,-1,1,0'.split(',').map(x => parseInt(x));
 }
 
 // To be called each frame
@@ -127,8 +133,8 @@ function draw() {
 	// console.log('\nMinimax AI (α+β pruning + MO + ID + Transposition Lookup 10M)');
 	// abMoIdTranspositionLookupAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 
-	// console.log('\nMinimax AI (α+β pruning + Move Ordering)');
-	// abMoveOrderingAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
+	console.log('\nMinimax AI (α+β pruning + Move Ordering)');
+	abMoveOrderingAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);
 	
 	console.log('\nMinimax AI (α+β pruning + Move Ordering (New))');
 	abMoveOrderingKHAi(GamePieces.toString(), SEARCH_DEPTH, TURN.AI_COLOR, PIECES);

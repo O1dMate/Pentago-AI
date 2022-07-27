@@ -556,21 +556,25 @@ function NewIsForcedToPreventWin(game, targetColor) {
 	for (let i = 0; i < ROW_INDICES.length; ++i) {
 		rowInt = convertRowToInt(game[ROW_INDICES[i][0]], game[ROW_INDICES[i][1]], game[ROW_INDICES[i][2]], game[ROW_INDICES[i][3]], game[ROW_INDICES[i][4]], game[ROW_INDICES[i][5]]);
 
+		if (FORCED_LOSS[targetColor][6][rowInt]) return true;
 		if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
 	}
 
 	for (let i = 0; i < COL_INDICES.length; ++i) {
 		rowInt = convertRowToInt(game[COL_INDICES[i][0]], game[COL_INDICES[i][1]], game[COL_INDICES[i][2]], game[COL_INDICES[i][3]], game[COL_INDICES[i][4]], game[COL_INDICES[i][5]]);
 
+		if (FORCED_LOSS[targetColor][6][rowInt]) return true;
 		if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
 	}
 
 	for (let i = 0; i < DIAGONAL_INDICES.length; ++i) {
 		if (DIAGONAL_INDICES[i].length === 6) {
 			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], game[DIAGONAL_INDICES[i][5]]);
+			if (FORCED_LOSS[targetColor][6][rowInt]) return true;
 			if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][6][rowInt]) return true;
 		} else {
 			rowInt = convertRowToInt(game[DIAGONAL_INDICES[i][0]], game[DIAGONAL_INDICES[i][1]], game[DIAGONAL_INDICES[i][2]], game[DIAGONAL_INDICES[i][3]], game[DIAGONAL_INDICES[i][4]], 0);
+			if (FORCED_LOSS[targetColor][5][rowInt]) return true;
 			if (FORCED_PREVENT_FIVE_IN_A_ROW[targetColor][5][rowInt]) return true;
 		}
 	}

@@ -96,10 +96,24 @@ function StartConfiguration() {
 		GamePieces.push(PIECES.EMPTY);
 	}
 
-	// GamePieces[1] = PIECES.WHITE;
-	// GamePieces[2] = PIECES.WHITE;
-	// GamePieces[3] = PIECES.WHITE;
-	// GamePieces[17] = PIECES.WHITE;
+	GamePieces[2] = PIECES.BLACK;
+	GamePieces[3] = PIECES.BLACK;
+	GamePieces[9] = PIECES.BLACK;
+	GamePieces[10] = PIECES.BLACK;
+	GamePieces[14] = PIECES.BLACK;
+	GamePieces[15] = PIECES.BLACK;
+	GamePieces[19] = PIECES.BLACK;
+	GamePieces[28] = PIECES.BLACK;
+
+	GamePieces[5] = PIECES.WHITE;
+	GamePieces[6] = PIECES.WHITE;
+	GamePieces[7] = PIECES.WHITE;
+	GamePieces[11] = PIECES.WHITE;
+	GamePieces[12] = PIECES.WHITE;
+	GamePieces[25] = PIECES.WHITE;
+	GamePieces[27] = PIECES.WHITE;
+	GamePieces[34] = PIECES.WHITE;
+
 	// GamePieces[23] = PIECES.WHITE;
 	// GamePieces[29] = PIECES.WHITE;
 	// GamePieces[20] = PIECES.BLACK;
@@ -133,7 +147,19 @@ function StartConfiguration() {
 	// GamePieces[30] = PIECES.WHITE;
 	// GamePieces[32] = PIECES.WHITE;
 
-	// GamePieces = '-1,-1,-1,-1,1,0,0,1,1,0,1,1,-1,1,0,0,0,-1,0,1,1,1,1,0,1,-1,0,-1,0,1,-1,0,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+	// GamePieces = '-1,0,0,1,-1,1,-1,1,0,0,1,1,-1,1,0,-1,0,1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+
+
+	// Great Test Position for Black 
+	// GamePieces = '-1,0,0,1,-1,1,-1,1,0,0,1,1,-1,1,0,-1,0,1,-1,-1,-1,-1,-1,-1,-1,1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+
+	// Great Test Position for Black
+	// GamePieces = '-1,0,0,1,1,1,-1,1,0,1,1,0,-1,1,0,1,0,-1,-1,0,1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+
+	// Great Test Position for White
+	// GamePieces = '-1,0,0,1,-1,1,-1,1,0,0,1,1,-1,1,0,-1,0,1,-1,-1,-1,-1,1,-1,0,0,0,-1,-1,-1,1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
+
+	// GamePieces = '1,-1,-1,1,0,0,1,-1,-1,-1,1,1,1,-1,-1,0,-1,1,-1,-1,0,0,1,1,-1,0,-1,-1,-1,1,0,-1,-1,-1,-1,0'.split(',').map(x => parseInt(x));
 
 	// 2 in a row for each player on separate rows. 
 	// GamePieces = '-1,1,1,-1,-1,-1,-1,0,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1'.split(',').map(x => parseInt(x));
